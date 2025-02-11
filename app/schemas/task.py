@@ -11,6 +11,7 @@ class TaskSchema(BaseModel):
     fats_per100g: int | None = None
     carbohydrates_per100g: int | None = None
     fiber_per100g: int | None = None
+    error: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
