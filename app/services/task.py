@@ -8,7 +8,7 @@ from app.repositories.task import TaskRepository
 from app.repositories.external import ExternalRepository
 from app.schemas.task import TaskSchema
 from app.schemas.external import ExternalResponseSchema
-from app.db.tables import Task
+from app.db.tables import Task, TaskItem
 
 
 class TaskService:
@@ -33,7 +33,8 @@ class TaskService:
             await self.task_repository.update(task_id, error="Invalid input image")
             return
         logger.debug("External response: " + str(response.model_dump()))
-        await self.task_repository.update(task_id, **response.model_dump())
+        items = [TaskItem(**i) for i in response.model_dump()['items']]
+        await self.task_repository.create_items(*items)
 
     async def get(self, task_id: UUID) -> TaskSchema:
         model = await self.task_repository.get(task_id)

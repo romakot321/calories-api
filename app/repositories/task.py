@@ -1,7 +1,7 @@
 from sqlalchemy_service import BaseService as BaseRepository
 from uuid import UUID
 
-from app.db.tables import Task
+from app.db.tables import Task, TaskItem
 
 
 class TaskRepository[Table: Task, int](BaseRepository):
@@ -10,9 +10,12 @@ class TaskRepository[Table: Task, int](BaseRepository):
     async def create(self, model: Task) -> Task:
         self.session.add(model)
         await self._commit()
-        await self.session.refresh(model)
         self.response.status_code = 201
         return await self.get(model.id)
+
+    async def create_items(self, *models: TaskItem):
+        [self.session.add(model) for model in models]
+        await self._commit()
 
     async def list(self, page=None, count=None) -> list[Task]:
         return list(await self._get_list(page=page, count=count))

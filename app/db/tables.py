@@ -1,7 +1,7 @@
 import datetime as dt
 import uuid
 from uuid import UUID
-from enum import Enum
+from enum import Enum, auto
 
 from sqlalchemy import bindparam
 from sqlalchemy import CheckConstraint
@@ -36,7 +36,10 @@ class BaseMixin:
     updated_at: M[dt.datetime | None] = column(nullable=True, onupdate=sql_utcnow)
 
 
-class Task(BaseMixin, Base):
+class TaskItem(Base):
+    __tablename__ = "task_items"
+
+    id: M[int] = column(primary_key=True, index=True, autoincrement=True)
     product: M[str | None] = column(nullable=True)
     weight: M[int | None] = column(nullable=True)
     kilocalories_per100g: M[int | None] = column(nullable=True)
@@ -44,5 +47,13 @@ class Task(BaseMixin, Base):
     fats_per100g: M[int | None] = column(nullable=True)
     carbohydrates_per100g: M[int | None] = column(nullable=True)
     fiber_per100g: M[int | None] = column(nullable=True)
+    task_id: M[UUID] = column(ForeignKey('tasks.id', ondelete="CASCADE"))
+
+    task: M['Task'] = relationship(back_populates='items')
+
+
+class Task(BaseMixin, Base):
     error: M[str | None] = column(nullable=True)
+
+    items: M[list['TaskItem']] = relationship(back_populates='task')
 
