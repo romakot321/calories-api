@@ -10,7 +10,6 @@ class ExternalResponseSchema(BaseModel):
         fats_per100g: int
         carbohydrates_per100g: int
         fiber_per100g: int
-        confidence: str
 
     items: list[Item]
     total_kilocalories: int

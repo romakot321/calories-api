@@ -14,8 +14,10 @@ class TaskSchema(BaseModel):
 
         @computed_field
         @property
-        def total_kilocalories(self) -> int | None:
-            return self.weight * self.kilocalories_per100g if self.weight else None
+        def total_kilocalories(self) -> int:
+            return self.weight * self.kilocalories_per100g // 100 if self.weight else None
+
+        model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     error: str | None = None
