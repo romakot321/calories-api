@@ -49,11 +49,11 @@ class TaskItem(Base):
     fiber_per100g: M[int | None] = column(nullable=True)
     task_id: M[UUID] = column(ForeignKey('tasks.id', ondelete="CASCADE"))
 
-    task: M['Task'] = relationship(back_populates='items')
+    task: M['Task'] = relationship(back_populates='items', lazy='selectin')
 
 
 class Task(BaseMixin, Base):
     error: M[str | None] = column(nullable=True)
 
-    items: M[list['TaskItem']] = relationship(back_populates='task')
+    items: M[list['TaskItem']] = relationship(back_populates='task', lazy='selectin')
 

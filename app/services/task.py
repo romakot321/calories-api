@@ -33,7 +33,7 @@ class TaskService:
             await self.task_repository.update(task_id, error="Invalid input image")
             return
         logger.debug("External response: " + str(response.model_dump()))
-        items = [TaskItem(**i) for i in response.model_dump()['items']]
+        items = [TaskItem(**i, task_id=task_id) for i in response.model_dump()['items']]
         await self.task_repository.create_items(*items)
 
     async def get(self, task_id: UUID) -> TaskSchema:
