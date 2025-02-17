@@ -1,3 +1,4 @@
+from typing import BinaryIO
 from openai import AsyncOpenAI
 from loguru import logger
 import httpx
@@ -52,6 +53,93 @@ class ExternalRepository:
         response = await self._run(base64.b64encode(image_raw).decode())
         try:
             return json.loads(response)
+        except json.JSONDecodeError:
+            return None
+
+    async def send_audio(self, audio_raw: BinaryIO) -> dict | None:
+        response = self.client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_raw,
+            language="ru",
+            prompt="Описание занятия спортом"
+        )
+
+        try:
+            return json.loads(response)
+        except json.JSONDecodeError:
+            return None
+
+    async def translate_audio_response(self, audio_response: dict) -> dict | None:
+        if 'text' not in audio_response:
+            raise ValueError
+
+        response = await self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                "role": "system",
+                "content": [
+                    {
+                    "type": "text",
+                    "text": "Ты помощник, анализирующий ввод пользователя. Тебе необходимо определить каждый перечисленный вид спорта и его продолжительность занятия, и ответить в JSON формате по следующей схеме: {\"items\": [{\"sport\": \"определенный спорт\", \"length\": \"продолжительность\"}]}. Поле sport - только общепринятое употребление в изначальной форме, поле length - только положительное целое число секунд."
+                    }
+                ]
+                },
+                {
+                "role": "user",
+                "content": [
+                    {
+                    "type": "text",
+                    "text": audio_response["text"]
+                    }
+                ]
+                }
+            ],
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                "name": "sport_metadata",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                        "type": "object",
+                        "properties": {
+                            "sport": {
+                            "type": "string"
+                            },
+                            "length": {
+                            "type": "number"
+                            }
+                        },
+                        "required": [
+                            "sport",
+                            "length"
+                        ],
+                        "additionalProperties": False
+                        }
+                    }
+                    },
+                    "required": [
+                    "items"
+                    ],
+                    "additionalProperties": False
+                }
+                }
+            },
+            temperature=0.7,
+            max_completion_tokens=2048,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+
+        logger.debug(f"Get response: {response}")
+        try:
+            return json.loads(response.choices[0].message.content)
         except json.JSONDecodeError:
             return None
 

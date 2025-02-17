@@ -17,3 +17,11 @@ class ExternalResponseSchema(BaseModel):
     error: str | None = None
 
 
+
+class ExternalAudioResponseSchema(BaseModel):
+    class Item(BaseModel):
+        sport: str
+        length: int
+
+    items: list[Item]
+
