@@ -3,7 +3,7 @@ from uuid import UUID
 from . import validate_api_token
 
 from app.services.task import TaskService
-from app.schemas.task import TaskAudioSchema, TaskSchema
+from app.schemas.task import TaskAudioSchema, TaskSchema, TaskTextCreateSchema
 
 
 router = APIRouter(prefix="/api/task", tags=["Meal recognition task"])
@@ -38,15 +38,39 @@ def _validate_file_is_image(file: UploadFile = Depends(_validate_file_size)) -> 
 def _validate_file_is_audio(file: UploadFile = Depends(_validate_file_size)) -> UploadFile:
     accepted_file_types = [
         "audio/mpeg", "video/mp4", "video/mpeg", "audio/ogg", "audio/wav",
-        "audio/webm", "video/webm"
+        "audio/webm", "video/webm", "video/ogg"
     ]
 
     if file.content_type not in accepted_file_types:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Unsupported file type for image",
+            detail="Unsupported file type for audio",
         )
     return file
+
+
+@router.post("/text/meal", response_model=TaskSchema)
+async def create_text_meal_task(
+        background_tasks: BackgroundTasks,
+        schema: TaskTextCreateSchema,
+        _=Depends(validate_api_token),
+        service: TaskService = Depends()
+):
+    model = await service.create()
+    background_tasks.add_task(service.send_text, model.id, schema)
+    return model
+
+
+@router.post("/text/sport", response_model=TaskSchema)
+async def create_text_sport_task(
+        background_tasks: BackgroundTasks,
+        schema: TaskTextCreateSchema,
+        _=Depends(validate_api_token),
+        service: TaskService = Depends()
+):
+    model = await service.create()
+    background_tasks.add_task(service.send_text_sport, model.id, schema)
+    return model
 
 
 @router.post("/image", response_model=TaskSchema)
@@ -57,11 +81,11 @@ async def create_image_task(
         service: TaskService = Depends()
 ):
     model = await service.create()
-    background_tasks.add_task(service.send, model.id, file.file.read())
+    background_tasks.add_task(service.send, model.id, await file.read())
     return model
 
 
-@router.post("/audio", response_model=TaskAudioSchema)
+@router.post("/audio/meal", response_model=TaskSchema)
 async def create_audio_task(
         background_tasks: BackgroundTasks,
         _=Depends(validate_api_token),
@@ -69,10 +93,60 @@ async def create_audio_task(
         service: TaskService = Depends()
 ):
     model = await service.create()
+    background_tasks.add_task(service.send_audio, model.id, await file.read())
+    return model
 
 
-@router.get("/{task_id}", response_model=TaskSchema)
-async def get_task(
+@router.post("/audio/sport", response_model=TaskSchema)
+async def create_audio_sport_task(
+        background_tasks: BackgroundTasks,
+        _=Depends(validate_api_token),
+        file: UploadFile = Depends(_validate_file_is_audio),
+        service: TaskService = Depends()
+):
+    model = await service.create()
+    background_tasks.add_task(service.send_sport_audio, model.id, await file.read())
+    return model
+
+
+@router.get("/image/{task_id}", response_model=TaskSchema)
+async def get_image_task(
+        task_id: UUID,
+        _=Depends(validate_api_token),
+        service: TaskService = Depends()
+):
+    return await service.get(task_id)
+
+
+@router.get("/audio/meal/{task_id}", response_model=TaskSchema)
+async def get_audio_meal_task(
+        task_id: UUID,
+        _=Depends(validate_api_token),
+        service: TaskService = Depends()
+):
+    return await service.get(task_id)
+
+
+@router.get("/audio/sport/{task_id}", response_model=TaskAudioSchema)
+async def get_audio_sport_task(
+        task_id: UUID,
+        _=Depends(validate_api_token),
+        service: TaskService = Depends()
+):
+    return await service.get(task_id)
+
+
+@router.get("/text/meal/{task_id}", response_model=TaskSchema)
+async def get_text_meal_task(
+        task_id: UUID,
+        _=Depends(validate_api_token),
+        service: TaskService = Depends()
+):
+    return await service.get(task_id)
+
+
+@router.get("/text/sport/{task_id}", response_model=TaskAudioSchema)
+async def get_text_sport_task(
         task_id: UUID,
         _=Depends(validate_api_token),
         service: TaskService = Depends()

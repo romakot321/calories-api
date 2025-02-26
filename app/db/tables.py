@@ -41,12 +41,12 @@ class TaskItem(Base):
 
     id: M[int] = column(primary_key=True, index=True, autoincrement=True)
     product: M[str | None] = column(nullable=True)
-    weight: M[int | None] = column(nullable=True)
-    kilocalories_per100g: M[int | None] = column(nullable=True)
-    proteins_per100g: M[int | None] = column(nullable=True)
-    fats_per100g: M[int | None] = column(nullable=True)
-    carbohydrates_per100g: M[int | None] = column(nullable=True)
-    fiber_per100g: M[int | None] = column(nullable=True)
+    weight: M[float | None] = column(nullable=True)
+    kilocalories_per100g: M[float | None] = column(nullable=True)
+    proteins_per100g: M[float | None] = column(nullable=True)
+    fats_per100g: M[float | None] = column(nullable=True)
+    carbohydrates_per100g: M[float | None] = column(nullable=True)
+    fiber_per100g: M[float | None] = column(nullable=True)
     task_id: M[UUID] = column(ForeignKey('tasks.id', ondelete="CASCADE"))
 
     task: M['Task'] = relationship(back_populates='items', lazy='selectin')

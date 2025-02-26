@@ -5,17 +5,21 @@ from uuid import UUID
 class TaskSchema(BaseModel):
     class Item(BaseModel):
         product: str | None = None
-        weight: int | None = None
-        kilocalories_per100g: int | None = None
-        proteins_per100g: int | None = None
-        fats_per100g: int | None = None
-        carbohydrates_per100g: int | None = None
-        fiber_per100g: int | None = None
+        weight: float | None = None
+        kilocalories_per100g: float | None = None
+        proteins_per100g: float | None = None
+        fats_per100g: float | None = None
+        carbohydrates_per100g: float | None = None
+        fiber_per100g: float | None = None
 
         @computed_field
         @property
-        def total_kilocalories(self) -> int:
-            return self.weight * self.kilocalories_per100g // 100 if self.weight else None
+        def total_kilocalories(self) -> float:
+            return (
+                self.weight * self.kilocalories_per100g / 100
+                if self.kilocalories_per100g
+                else None
+            )
 
         model_config = ConfigDict(from_attributes=True)
 
@@ -34,13 +38,15 @@ class TaskSchema(BaseModel):
 class TaskAudioSchema(BaseModel):
     class Item(BaseModel):
         sport: str | None = Field(default=None, validation_alias="product")
-        kilocalories_per1h: int | None = Field(default=None, validation_alias="kilocalories_per100g")
-        time: int | None = Field(default=None, validation_alias="weight")
+        kilocalories_per1h: float | None = Field(
+            default=None, validation_alias="kilocalories_per100g"
+        )
+        time: float | None = Field(default=None, validation_alias="weight")
 
         @computed_field
         @property
-        def total_kilocalories(self) -> int | None:
-            return self.time * self.kilocalories_per1h if self.time else None
+        def total_kilocalories(self) -> float | None:
+            return self.time * (self.kilocalories_per1h / 3600) if self.time else None
 
     id: UUID
     error: str | None = None
@@ -53,3 +59,6 @@ class TaskAudioSchema(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class TaskTextCreateSchema(BaseModel):
+    text: str

@@ -57,22 +57,110 @@ class ExternalRepository:
             return None
 
     async def send_audio(self, audio_raw: BinaryIO) -> dict | None:
-        response = self.client.audio.transcriptions.create(
+        response = await self.client.audio.transcriptions.create(
             model="whisper-1",
             file=audio_raw,
             language="ru",
-            prompt="Описание занятия спортом"
+            prompt="Описание занятий спортом и съеденной еды"
         )
 
+        logger.debug(f"Get response: {response}")
+        return {"text": response.text}
+
+    async def translate_meal_audio_response(self, text: str) -> dict | None:
+        response = await self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                "role": "system",
+                "content": [
+                    {
+                    "type": "text",
+                    "text": 'Ты помощник, анализирующий ввод пользователя. Тебе необходимо определить каждый перечисленный вид еды и его КБЖУ, и ответить в JSON формате по следующей схеме:' \
+                            '{"items": [{"product": "определенная еда", "weight": вес в граммах, "kilocalories_per100g": число ккал, "proteins_per100g": число протеинов, "fats_per100g": число жиров, "carbohydrates_per100g": число углеводов, "fiber_per100g": число белка}]}' \
+                            'Числовые поля только положительные. Если еда не найдена, оставляй все поля равными 0'
+                    }
+                ]
+                },
+                {
+                "role": "user",
+                "content": [
+                    {
+                    "type": "text",
+                    "text": text
+                    }
+                ]
+                }
+            ],
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                "name": "sport_metadata",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "product": {
+                                    "type": "string"
+                                },
+                                "weight": {
+                                    "type": "number"
+                                },
+                                "kilocalories_per100g": {
+                                    "type": "number"
+                                },
+                                "proteins_per100g": {
+                                    "type": "number"
+                                },
+                                "fats_per100g": {
+                                    "type": "number"
+                                },
+                                "carbohydrates_per100g": {
+                                    "type": "number"
+                                },
+                                "fiber_per100g": {
+                                    "type": "number"
+                                }
+                            },
+                            "required": [
+                                "product",
+                                "weight",
+                                "kilocalories_per100g",
+                                "proteins_per100g",
+                                "fats_per100g",
+                                "carbohydrates_per100g",
+                                "fiber_per100g",
+                            ],
+                            "additionalProperties": False
+                        }
+                    }
+                    },
+                    "required": [
+                    "items"
+                    ],
+                    "additionalProperties": False
+                }
+                }
+            },
+            temperature=0.7,
+            max_completion_tokens=2048,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+
+        logger.debug(f"Get response: {response}")
         try:
-            return json.loads(response)
+            return json.loads(response.choices[0].message.content)
         except json.JSONDecodeError:
             return None
 
-    async def translate_audio_response(self, audio_response: dict) -> dict | None:
-        if 'text' not in audio_response:
-            raise ValueError
-
+    async def translate_sport_audio_response(self, text: str) -> dict | None:
         response = await self.client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -90,7 +178,7 @@ class ExternalRepository:
                 "content": [
                     {
                     "type": "text",
-                    "text": audio_response["text"]
+                    "text": text
                     }
                 ]
                 }

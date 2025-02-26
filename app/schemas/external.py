@@ -4,23 +4,36 @@ from pydantic import BaseModel
 class ExternalResponseSchema(BaseModel):
     class Item(BaseModel):
         product: str
-        weight: int
-        kilocalories_per100g: int
-        proteins_per100g: int
-        fats_per100g: int
-        carbohydrates_per100g: int
-        fiber_per100g: int
+        weight: float
+        kilocalories_per100g: float
+        proteins_per100g: float
+        fats_per100g: float
+        carbohydrates_per100g: float
+        fiber_per100g: float
 
     items: list[Item]
-    total_kilocalories: int
+    total_kilocalories: float
     error: str | None = None
 
 
 
-class ExternalAudioResponseSchema(BaseModel):
+class ExternalAudioSportResponseSchema(BaseModel):
     class Item(BaseModel):
         sport: str
-        length: int
+        length: float
+
+    items: list[Item]
+
+
+class ExternalAudioMealResponseSchema(BaseModel):
+    class Item(BaseModel):
+        product: str
+        weight: float
+        kilocalories_per100g: float
+        proteins_per100g: float
+        fats_per100g: float
+        carbohydrates_per100g: float
+        fiber_per100g: float
 
     items: list[Item]
 
