@@ -46,6 +46,7 @@ class TaskService:
             await self.task_repository.update(task_id, error="Invalid input audio")
             return
 
+        await self.task_repository.update(task_id, text=response["text"])
         response = await self.external_repository.translate_meal_audio_response(response["text"])
 
         try:
@@ -67,6 +68,7 @@ class TaskService:
             await self.task_repository.update(task_id, error="Invalid input audio")
             return
 
+        await self.task_repository.update(task_id, text=response["text"])
         response = await self.external_repository.translate_sport_audio_response(response["text"])
 
         try:
@@ -81,6 +83,7 @@ class TaskService:
         await self.task_repository.create_items(*items)
 
     async def send_text(self, task_id: UUID, schema: TaskTextCreateSchema):
+        await self.task_repository.update(task_id, text=schema.text)
         response = await self.external_repository.translate_meal_audio_response(schema.text)
         try:
             response = ExternalAudioMealResponseSchema.model_validate(response)
@@ -93,6 +96,7 @@ class TaskService:
         await self.task_repository.create_items(*items)
 
     async def send_text_sport(self, task_id: UUID, schema: TaskTextCreateSchema):
+        await self.task_repository.update(task_id, text=schema.text)
         response = await self.external_repository.translate_sport_audio_response(schema.text)
         try:
             response = ExternalAudioMealResponseSchema.model_validate(response)

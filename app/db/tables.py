@@ -54,6 +54,7 @@ class TaskItem(Base):
 
 class Task(BaseMixin, Base):
     error: M[str | None] = column(nullable=True)
+    text: M[str | None]
 
     items: M[list['TaskItem']] = relationship(back_populates='task', lazy='selectin')
 

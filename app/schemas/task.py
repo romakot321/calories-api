@@ -25,6 +25,7 @@ class TaskSchema(BaseModel):
 
     id: UUID
     error: str | None = None
+    text: str | None = None
     items: list[Item]
 
     @computed_field
@@ -50,6 +51,7 @@ class TaskAudioSchema(BaseModel):
 
     id: UUID
     error: str | None = None
+    text: str | None = None
     items: list[Item]
 
     @computed_field
