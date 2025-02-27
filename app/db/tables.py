@@ -47,6 +47,7 @@ class TaskItem(Base):
     fats_per100g: M[float | None] = column(nullable=True)
     carbohydrates_per100g: M[float | None] = column(nullable=True)
     fiber_per100g: M[float | None] = column(nullable=True)
+    action: M[str | None]
     task_id: M[UUID] = column(ForeignKey('tasks.id', ondelete="CASCADE"))
 
     task: M['Task'] = relationship(back_populates='items', lazy='selectin')

@@ -34,6 +34,7 @@ class ExternalAudioMealResponseSchema(BaseModel):
         fats_per100g: float
         carbohydrates_per100g: float
         fiber_per100g: float
+        action: str | None = None
 
     items: list[Item]
 

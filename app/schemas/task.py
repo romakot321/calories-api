@@ -11,6 +11,7 @@ class TaskSchema(BaseModel):
         fats_per100g: float | None = None
         carbohydrates_per100g: float | None = None
         fiber_per100g: float | None = None
+        action: str | None = None
 
         @computed_field
         @property
@@ -43,6 +44,7 @@ class TaskAudioSchema(BaseModel):
             default=None, validation_alias="kilocalories_per100g"
         )
         time: float | None = Field(default=None, validation_alias="weight")
+        action: str | None = None
 
         @computed_field
         @property
