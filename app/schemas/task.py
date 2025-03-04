@@ -32,7 +32,7 @@ class TaskSchema(BaseModel):
     @computed_field
     @property
     def total_kilocalories(self) -> int:
-        return sum(map(lambda i: i.total_kilocalories, self.items))
+        return sum(map(lambda i: i.total_kilocalories if i.total_kilocalories is not None else 0, self.items))
 
     model_config = ConfigDict(from_attributes=True)
 

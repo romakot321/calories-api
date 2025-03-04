@@ -26,6 +26,7 @@ def _validate_file_is_image(file: UploadFile = Depends(_validate_file_size)) -> 
         "image/png", "image/jpeg", "image/jpg", "image/heic", "image/heif", "image/heics", "png",
         "jpeg", "jpg", "heic", "heif", "heics"
     ]
+    return file
 
     if file.content_type not in accepted_file_types:
         raise HTTPException(
@@ -40,6 +41,7 @@ def _validate_file_is_audio(file: UploadFile = Depends(_validate_file_size)) -> 
         "audio/mpeg", "video/mp4", "video/mpeg", "audio/ogg", "audio/wav",
         "audio/webm", "video/webm", "video/ogg"
     ]
+    return file
 
     if file.content_type not in accepted_file_types:
         raise HTTPException(

@@ -84,7 +84,12 @@ class TaskService:
 
     async def send_text(self, task_id: UUID, schema: TaskTextCreateSchema):
         await self.task_repository.update(task_id, text=schema.text)
-        response = await self.external_repository.translate_meal_audio_response(schema.text)
+        try:
+            response = await self.external_repository.translate_meal_audio_response(schema.text)
+        except Exception as e:
+            logger.exception(e)
+            await self.task_repository.update(task_id, error="Internal error")
+            return
         try:
             response = ExternalAudioMealResponseSchema.model_validate(response)
         except pydantic.ValidationError as e:
