@@ -34,8 +34,21 @@ class TaskService:
             logger.exception(e)
             await self.task_repository.update(task_id, error="Invalid input image")
             return
+
         logger.debug("External image response: " + str(response.model_dump()))
-        items = [TaskItem(**i, task_id=task_id) for i in response.model_dump()['items']]
+        items = [
+            TaskItem(
+                product=response.foodName[item.food_item_position - 1],
+                kilocalories_per100g=item.nutritional_info.calories * 100 / item.serving_size,
+                proteins_per100g=item.nutritional_info.totalNutrients.PROCNT.quantity * 100 / item.serving_size,
+                fats_per100g=item.nutritional_info.totalNutrients.FAT.quantity * 100 / item.serving_size,
+                carbohydrates_per100g=item.nutritional_info.totalNutrients.CHOCDF.quantity * 100 / item.serving_size,
+                fiber_per100g=item.nutritional_info.totalNutrients.FIBTG.quantity * 100 / item.serving_size,
+                weight=item.serving_size,
+                task_id=task_id
+            )
+            for item in response.nutritional_info_per_item
+        ]
         await self.task_repository.create_items(*items)
 
     async def send_audio(self, task_id: UUID, file_raw: bytes):

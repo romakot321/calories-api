@@ -40,6 +40,8 @@ class TaskItem(Base):
     __tablename__ = "task_items"
 
     id: M[int] = column(primary_key=True, index=True, autoincrement=True)
+    task_id: M[UUID] = column(ForeignKey('tasks.id', ondelete="CASCADE"))
+
     product: M[str | None] = column(nullable=True)
     weight: M[float | None] = column(nullable=True)
     kilocalories_per100g: M[float | None] = column(nullable=True)
@@ -47,8 +49,8 @@ class TaskItem(Base):
     fats_per100g: M[float | None] = column(nullable=True)
     carbohydrates_per100g: M[float | None] = column(nullable=True)
     fiber_per100g: M[float | None] = column(nullable=True)
+
     action: M[str | None]
-    task_id: M[UUID] = column(ForeignKey('tasks.id', ondelete="CASCADE"))
 
     task: M['Task'] = relationship(back_populates='items', lazy='selectin')
 
