@@ -7,19 +7,26 @@ import pydantic
 
 from app.repositories.task import TaskRepository
 from app.repositories.external import ExternalRepository
+from app.repositories.translate import TranslateRepository
 from app.schemas.task import TaskSchema, TaskTextCreateSchema
-from app.schemas.external import ExternalAudioMealResponseSchema, ExternalAudioSportResponseSchema, ExternalResponseSchema
+from app.schemas.external import (
+    ExternalAudioMealResponseSchema,
+    ExternalAudioSportResponseSchema,
+    ExternalResponseSchema,
+)
 from app.db.tables import Task, TaskItem
 
 
 class TaskService:
     def __init__(
-            self,
-            task_repository: TaskRepository = Depends(),
-            external_repository: ExternalRepository = Depends()
+        self,
+        task_repository: TaskRepository = Depends(),
+        translate_repository: TranslateRepository = Depends(),
+        external_repository: ExternalRepository = Depends(),
     ):
         self.task_repository = task_repository
         self.external_repository = external_repository
+        self.translate_repository = translate_repository
 
     async def create(self) -> TaskSchema:
         model = await self.task_repository.create(Task())
@@ -36,16 +43,24 @@ class TaskService:
             return
 
         logger.debug("External image response: " + str(response.model_dump()))
+        translated_foodnames = await self.translate_repository.translate_from_en_to_ru(
+            response.foodName
+        )
         items = [
             TaskItem(
-                product=response.foodName[item.food_item_position - 1],
-                kilocalories_per100g=item.nutritional_info.calories * 100 / item.serving_size,
-                proteins_per100g=item.nutritional_info.totalNutrients.PROCNT.quantity * 100 / item.serving_size,
-                fats_per100g=item.nutritional_info.totalNutrients.FAT.quantity * 100 / item.serving_size,
-                carbohydrates_per100g=item.nutritional_info.totalNutrients.CHOCDF.quantity * 100 / item.serving_size,
-                fiber_per100g=item.nutritional_info.totalNutrients.FIBTG.quantity * 100 / item.serving_size,
+                product=translated_foodnames[item.food_item_position - 1],
+                kilocalories_per100g=item.nutritional_info.calories
+                    * 100 / item.serving_size,
+                proteins_per100g=item.nutritional_info.totalNutrients.PROCNT.quantity
+                    * 100 / item.serving_size,
+                fats_per100g=item.nutritional_info.totalNutrients.FAT.quantity
+                    * 100 / item.serving_size,
+                carbohydrates_per100g=item.nutritional_info.totalNutrients.CHOCDF.quantity
+                    * 100 / item.serving_size,
+                fiber_per100g=item.nutritional_info.totalNutrients.FIBTG.quantity
+                    * 100 / item.serving_size,
                 weight=item.serving_size,
-                task_id=task_id
+                task_id=task_id,
             )
             for item in response.nutritional_info_per_item
         ]
@@ -60,7 +75,9 @@ class TaskService:
             return
 
         await self.task_repository.update(task_id, text=response["text"])
-        response = await self.external_repository.translate_meal_audio_response(response["text"])
+        response = await self.external_repository.translate_meal_audio_response(
+            response["text"]
+        )
 
         try:
             response = ExternalAudioMealResponseSchema.model_validate(response)
@@ -82,7 +99,9 @@ class TaskService:
             return
 
         await self.task_repository.update(task_id, text=response["text"])
-        response = await self.external_repository.translate_sport_audio_response(response["text"])
+        response = await self.external_repository.translate_sport_audio_response(
+            response["text"]
+        )
 
         try:
             response = ExternalAudioSportResponseSchema.model_validate(response)
@@ -92,13 +111,18 @@ class TaskService:
             await self.task_repository.update(task_id, error="Invalid input audio")
             return
         logger.debug("External audio response: " + str(response.model_dump()))
-        items = [TaskItem(product=i.sport, weight=i.length, task_id=task_id) for i in response.items]
+        items = [
+            TaskItem(product=i.sport, weight=i.length, task_id=task_id)
+            for i in response.items
+        ]
         await self.task_repository.create_items(*items)
 
     async def send_text(self, task_id: UUID, schema: TaskTextCreateSchema):
         await self.task_repository.update(task_id, text=schema.text)
         try:
-            response = await self.external_repository.translate_meal_audio_response(schema.text)
+            response = await self.external_repository.translate_meal_audio_response(
+                schema.text
+            )
         except Exception as e:
             logger.exception(e)
             await self.task_repository.update(task_id, error="Internal error")
@@ -115,7 +139,9 @@ class TaskService:
 
     async def send_text_sport(self, task_id: UUID, schema: TaskTextCreateSchema):
         await self.task_repository.update(task_id, text=schema.text)
-        response = await self.external_repository.translate_sport_audio_response(schema.text)
+        response = await self.external_repository.translate_sport_audio_response(
+            schema.text
+        )
         try:
             response = ExternalAudioMealResponseSchema.model_validate(response)
         except pydantic.ValidationError as e:
@@ -128,4 +154,3 @@ class TaskService:
 
     async def get(self, task_id: UUID) -> Task:
         return await self.task_repository.get(task_id)
-
