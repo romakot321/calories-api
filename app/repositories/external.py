@@ -13,15 +13,15 @@ import io
 class ExternalRepository:
     def __init__(self):
         self.client = AsyncOpenAI()
-        self.logmeal_token = os.getenv("LOGMEAL_TOKEN")
+        self.deepseek_client = AsyncOpenAI(api_key=os.getenv("DEEPSEEK_TOKEN"), base_url="https://api.deepseek.com")
 
-    async def send(self, image_raw: bytes) -> dict | None:
+    async def send(self, image_raw: bytes, user_token: str) -> dict | None:
         image = io.BytesIO(image_raw)
         image.name = "a.jpg"
         async with aiohttp.ClientSession() as session:
             resp = await session.post(
                 "https://api.logmeal.com/v2/image/segmentation/complete",
-                headers={"Authorization": "Bearer " + self.logmeal_token},
+                headers={"Authorization": "Bearer " + user_token},
                 data={"image": image}
             )
             assert resp.status == 200, await resp.text()
@@ -29,7 +29,7 @@ class ExternalRepository:
 
             resp = await session.post(
                 "https://api.logmeal.com/v2/recipe/nutritionalInfo",
-                headers={"Authorization": "Bearer " + self.logmeal_token},
+                headers={"Authorization": "Bearer " + user_token},
                 json={"imageId": body["imageId"]}
             )
             assert resp.status == 200, await resp.text()
@@ -48,6 +48,55 @@ class ExternalRepository:
 
         logger.debug(f"Get response: {response}")
         return {"text": response.text}
+
+    async def extract_food_names(self, text: str) -> list[dict]:
+        response = await self.deepseek_client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                    {
+                        "role": "system",
+                        "content": "Найди все названия блюд, их размер и что с ними делать в вводе пользователя. Ответь по следующей json-схеме:" \
+                                '{"food": [{"name": "название блюда", "size": размер, "action": действие}]}. Если размер не найден, оставляй поле пустым. Размер - только число граммов' \
+                                ', если размер передан словом, вычисли общепринятый размер. Например, банка - 300 грамм.' \
+                                '. Action - строго "добавить" или "удалить". Добавить значит добавить продукт в список, удалить - убрать из него. Если определить action не удалось, то пустое'
+                    },
+                    {"role": "user", "content": text},
+            ],
+            max_tokens=1024,
+            temperature=0.7,
+            response_format={"type": "json_object"},
+            stream=False
+        )
+
+        logger.debug(f"Get response: {response}")
+        try:
+            return json.loads(response.choices[0].message.content)["food"]
+        except json.JSONDecodeError:
+            return None
+
+    async def recognize_calories_from_text(self, text: str) -> list[dict]:
+        response = await self.deepseek_client.chat.completions.create(
+            model="deepseek-reasoner",
+            messages=[
+                    {
+                        "role": "system",
+                        "content": "Ты помощник, анализирующий ввод пользователя. Тебе необходимо определить каждый перечисленный вид еды и его КБЖУ, и ответить в JSON формате по следующей схеме:" \
+                            '{"items": [{"product": "определенная еда", "weight": вес в граммах, "kilocalories_per100g": число ккал, "fats_per100g": число жиров, "carbohydrates_per100g": число углеводов, "fiber_per100g": число белков}]}' \
+                            'Числовые поля только положительные. Если еда не найдена, оставляй все поля равными 0',
+                    },
+                    {"role": "user", "content": text},
+            ],
+            max_tokens=1024,
+            temperature=0.7,
+            response_format={"type": "json_object"},
+            stream=False
+        )
+
+        logger.debug(f"Get response: {response}")
+        try:
+            return json.loads(response.choices[0].message.content)["items"]
+        except json.JSONDecodeError:
+            return None
 
     async def translate_meal_audio_response(self, text: str) -> dict | None:
         response = await self.client.chat.completions.create(

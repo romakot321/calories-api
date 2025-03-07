@@ -10,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager
 
 from app.db.admin import attach_admin_panel
+from app.repositories.meal_db import MealDBRepository
 
 
 class ProjectSettings(BaseSettings):
@@ -40,12 +41,19 @@ def register_cors(application):
     )
 
 
+@asynccontextmanager
+async def lifespan(app):
+    await MealDBRepository.init_database_pool()
+    yield
+
+
 def init_web_application():
     project_settings = ProjectSettings()
     application = FastAPI(
         openapi_url='/openapi.json',
         docs_url='/docs',
-        redoc_url='/redoc'
+        redoc_url='/redoc',
+        lifespan=lifespan
     )
 
     if project_settings.LOCAL_MODE:
