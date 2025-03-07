@@ -62,7 +62,7 @@ class Task(BaseMixin, Base):
     items: M[list['TaskItem']] = relationship(back_populates='task', lazy='selectin')
 
 
-class LogmealUser(BaseMixin, Base):
+class User(BaseMixin, Base):
     username: M[str] = column(index=True)
-    token: M[str]
+    token: M[str] = column(doc="LogMeal token")
 
