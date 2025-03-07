@@ -58,3 +58,4 @@ WTForms==3.1.2
 yarl==1.18.3
 sqlalchemy-service==0.2.10
 httpx[http2]
+aiomysql==0.2.0
