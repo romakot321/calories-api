@@ -1,7 +1,7 @@
 from sqlalchemy_service import BaseService as BaseRepository
 from uuid import UUID
 
-from app.db.tables import User, UserItem
+from app.db.tables import User
 
 
 class UserRepository[Table: User, int](BaseRepository):
@@ -11,7 +11,7 @@ class UserRepository[Table: User, int](BaseRepository):
         self.session.add(model)
         await self._commit()
         self.response.status_code = 201
-        return await self.get(model.id)
+        return await self._get_one(id=model.id)
 
     async def list(self, page=None, count=None) -> list[User]:
         return list(await self._get_list(page=page, count=count))
