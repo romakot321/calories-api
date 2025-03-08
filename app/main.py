@@ -43,7 +43,6 @@ def register_cors(application):
 
 @asynccontextmanager
 async def lifespan(app):
-    await MealDBRepository.init_database_pool()
     yield
 
 
@@ -61,10 +60,8 @@ def init_web_application():
         register_cors(application)
 
     from app.routes.task import router as task_router
-    from app.routes.user import router as user_router
 
     application.include_router(task_router)
-    application.include_router(user_router)
 
     attach_admin_panel(application)
 

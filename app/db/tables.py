@@ -3,7 +3,7 @@ import uuid
 from uuid import UUID
 from enum import Enum, auto
 
-from sqlalchemy import bindparam
+from sqlalchemy import JSON, bindparam
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
@@ -49,6 +49,7 @@ class TaskItem(Base):
     fats_per100g: M[float | None] = column(nullable=True)
     carbohydrates_per100g: M[float | None] = column(nullable=True)
     fiber_per100g: M[float | None] = column(nullable=True)
+    ingredients: M[JSON | None] = column(type_=JSON)
 
     action: M[str | None]
 
@@ -57,12 +58,8 @@ class TaskItem(Base):
 
 class Task(BaseMixin, Base):
     error: M[str | None] = column(nullable=True)
+    comment: M[str | None]
     text: M[str | None]
 
     items: M[list['TaskItem']] = relationship(back_populates='task', lazy='selectin')
-
-
-class User(BaseMixin, Base):
-    username: M[str] = column(index=True)
-    token: M[str] = column(doc="LogMeal token")
 

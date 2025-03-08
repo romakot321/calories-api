@@ -1,9 +1,10 @@
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, Json
 from uuid import UUID
 
 
 class TaskSchema(BaseModel):
     class Item(BaseModel):
+        """Ingredients field is a json list with keys {ingredient: str, weight: int}"""
         product: str | None = None
         weight: float | None = None
         kilocalories_per100g: float | None = None
@@ -11,6 +12,7 @@ class TaskSchema(BaseModel):
         fats_per100g: float | None = None
         carbohydrates_per100g: float | None = None
         fiber_per100g: float | None = None
+        ingredients: list[dict] | None = None
         action: str | None = None
 
         @computed_field
@@ -26,6 +28,7 @@ class TaskSchema(BaseModel):
 
     id: UUID
     error: str | None = None
+    comment: str | None = None
     text: str | None = None
     items: list[Item]
 

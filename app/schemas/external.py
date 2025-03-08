@@ -2,30 +2,24 @@ from pydantic import BaseModel
 
 
 class ExternalResponseSchema(BaseModel):
-    class Item(BaseModel):
-        class NutritionalInfo(BaseModel):
-            class Nutrition(BaseModel):
-                class Info(BaseModel):
-                    label: str
-                    quantity: float
-                    unit: str
+    class Dish(BaseModel):
+        class Ingredient(BaseModel):
+            ingredient: str
+            weight: int
 
-                ALC: Info
-                CHOCDF: Info
-                ENERC_KCAL: Info
-                FAT: Info
-                FIBTG: Info
-                PROCNT: Info
+        class Nutrition(BaseModel):
+            calories: int
+            protein: int
+            fats: int
+            carbohydrates: int
 
-            calories: float
-            totalNutrients: Nutrition
+        dish_name: str
+        ingredients: list[Ingredient]
+        nutrition: Nutrition
+        weight: int
 
-        food_item_position: int
-        nutritional_info: NutritionalInfo
-        serving_size: float  # In grams
-
-    foodName: list[str]
-    nutritional_info_per_item: list[Item]
+    dishes: list[Dish]
+    commentary: str
 
 
 class ExternalAudioSportResponseSchema(BaseModel):

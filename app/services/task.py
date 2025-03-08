@@ -9,7 +9,6 @@ from app.repositories.meal_db import MealDBRepository
 from app.repositories.task import TaskRepository
 from app.repositories.external import ExternalRepository
 from app.repositories.translate import TranslateRepository
-from app.repositories.user import UserRepository
 from app.schemas.meal_db import MealDBProduct
 from app.schemas.task import TaskSchema, TaskTextCreateSchema
 from app.schemas.external import (
@@ -27,21 +26,18 @@ class TaskService:
         translate_repository: TranslateRepository = Depends(),
         external_repository: ExternalRepository = Depends(),
         mealdb_repository: MealDBRepository = Depends(),
-        user_repository: UserRepository = Depends()
     ):
         self.task_repository = task_repository
         self.external_repository = external_repository
         self.translate_repository = translate_repository
         self.mealdb_repository = mealdb_repository
-        self.user_repository = user_repository
 
     async def create(self) -> TaskSchema:
         model = await self.task_repository.create(Task())
         return TaskSchema.model_validate(model)
 
-    async def send(self, task_id: UUID, file_raw: bytes, username: str):
-        user = await self.user_repository.get(username)
-        response = await self.external_repository.send(file_raw, user.token)
+    async def send(self, task_id: UUID, file_raw: bytes):
+        response = await self.external_repository.send(file_raw)
         try:
             response = ExternalResponseSchema.model_validate(response)
         except pydantic.ValidationError as e:
@@ -51,27 +47,20 @@ class TaskService:
             return
 
         logger.debug("External image response: " + str(response.model_dump()))
-        translated_foodnames = await self.translate_repository.translate_from_en_to_ru(
-            *response.foodName
-        )
         items = [
             TaskItem(
-                product=translated_foodnames[item.food_item_position - 1],
-                kilocalories_per100g=item.nutritional_info.calories
-                    * 100 / item.serving_size,
-                proteins_per100g=item.nutritional_info.totalNutrients.PROCNT.quantity
-                    * 100 / item.serving_size,
-                fats_per100g=item.nutritional_info.totalNutrients.FAT.quantity
-                    * 100 / item.serving_size,
-                carbohydrates_per100g=item.nutritional_info.totalNutrients.CHOCDF.quantity
-                    * 100 / item.serving_size,
-                fiber_per100g=item.nutritional_info.totalNutrients.FIBTG.quantity
-                    * 100 / item.serving_size,
-                weight=item.serving_size,
+                product=item.dish_name,
+                kilocalories_per100g=item.nutrition.calories / item.weight * 100,
+                fiber_per100g=item.nutrition.protein / item.weight * 100,
+                fats_per100g=item.nutrition.fats / item.weight * 100,
+                carbohydrates_per100g=item.nutrition.carbohydrates / item.weight * 100,
+                weight=item.weight,
+                ingredients=item.model_dump()["ingredients"],
                 task_id=task_id,
             )
-            for item in response.nutritional_info_per_item
+            for item in response.dishes
         ]
+        await self.task_repository.update(task_id, comment=response.commentary)
         await self.task_repository.create_items(*items)
 
     async def send_audio(self, task_id: UUID, file_raw: bytes):

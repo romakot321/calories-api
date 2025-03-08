@@ -15,28 +15,46 @@ class ExternalRepository:
         self.client = AsyncOpenAI()
         self.deepseek_client = AsyncOpenAI(api_key=os.getenv("DEEPSEEK_TOKEN"), base_url="https://api.deepseek.com")
 
-    async def send(self, image_raw: bytes, user_token: str) -> dict | None:
-        image = io.BytesIO(image_raw)
-        image.name = "a.jpg"
-        async with aiohttp.ClientSession() as session:
-            resp = await session.post(
-                "https://api.logmeal.com/v2/image/segmentation/complete",
-                headers={"Authorization": "Bearer " + user_token},
-                data={"image": image}
-            )
-            assert resp.status == 200, await resp.text()
-            body = await resp.json()
+    async def send(self, image_raw: bytes) -> dict | None:
+        response = await self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                "role": "system",
+                "content": [
+                    {
+                    "type": "text",
+                    "text": "Determine the nutritional content (calories, proteins, fats, carbohydrates), ingredients, and weight of combined dishes from a photo. Merge multiple dishes into one unified dish if present in a single photo. Add a general name for the dish and a commentary on the nutritional value and benefits of the presented food.\n\n# Steps\n\n1. Analyze the photo to identify the main ingredients of all dishes and estimate their weight.\n2. Combine some of dishes if they in the same bowl.\n3. Calculate the total calories and the proportions of proteins, fats, and carbohydrates for the combined dish based on identified ingredients and their weight.\n4. Determine the total weight of the combined dish with gram precision.\n5. Assign a general name in Russian to the combined dish.\n6. Provide a brief commentary on the nutritional properties and health benefits of the combined dish.\n\n# Output Format\n\nProvide the output in JSON format:\n- `dishes`: an list of objects representing the dishes containing:\n    - `dish_name`: the general name in Russian of the combined dish.\n    - `ingredients`: a list of objects in Russian for each identified ingredient and its weight with gram precision to `ingredient` and `weight` fields.\n    - `nutrition`: an object with fields `calories`, `protein`, `fats`, `carbohydrates` calculated with gram precision.\n    - `weight`: the total weight of the combined dish with gram precision.\n- `commentary`: a string with похвалой или замечениями пользователя по поводу combined dish. Варьируйте текст, используя эмодзи.\n\n# Notes\n\n- Consider possible distortions due to photo quality.\n- Make the best guesses for unidentified ingredients.\n- Include general health benefits context when applicable."
+                    }
+                ]
+                },
+                {
+                "role": "user",
+                "content": [
+                    {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": "data:image/jpeg;base64," + base64.b64encode(image_raw).decode()
+                    }
+                    }
+                ]
+                }
+            ],
+            response_format={
+                "type": "json_object"
+            },
+            temperature=0.7,
+            max_completion_tokens=1024,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
 
-            resp = await session.post(
-                "https://api.logmeal.com/v2/recipe/nutritionalInfo",
-                headers={"Authorization": "Bearer " + user_token},
-                json={"imageId": body["imageId"]}
-            )
-            assert resp.status == 200, await resp.text()
-            body = await resp.json()
-
-        logger.debug(f"Get image response: {body}")
-        return body
+        logger.debug(f"Get response: {response}")
+        try:
+            return json.loads(response.choices[0].message.content)
+        except json.JSONDecodeError:
+            return None
 
     async def send_audio(self, audio_raw: BinaryIO) -> dict | None:
         response = await self.client.audio.transcriptions.create(

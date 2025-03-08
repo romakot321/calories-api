@@ -78,13 +78,12 @@ async def create_text_sport_task(
 @router.post("/image", response_model=TaskSchema)
 async def create_image_task(
         background_tasks: BackgroundTasks,
-        username: str = Query(),
         _=Depends(validate_api_token),
         file: UploadFile = Depends(_validate_file_is_image),
         service: TaskService = Depends()
 ):
     model = await service.create()
-    background_tasks.add_task(service.send, model.id, await file.read(), username)
+    background_tasks.add_task(service.send, model.id, await file.read())
     return model
 
 
