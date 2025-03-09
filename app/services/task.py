@@ -10,7 +10,7 @@ from app.repositories.task import TaskRepository
 from app.repositories.external import ExternalRepository
 from app.repositories.translate import TranslateRepository
 from app.schemas.meal_db import MealDBProduct
-from app.schemas.task import TaskSchema, TaskTextCreateSchema
+from app.schemas.task import TaskEditSchema, TaskSchema, TaskTextCreateSchema
 from app.schemas.external import (
     ExternalAudioMealResponseSchema,
     ExternalAudioSportResponseSchema,
@@ -88,7 +88,7 @@ class TaskService:
         try:
             response = ExternalAudioSportResponseSchema.model_validate(response)
         except pydantic.ValidationError as e:
-            logger.debug("Invalid external audio response get")
+            logger.error("Invalid external audio response get")
             logger.exception(e)
             await self.task_repository.update(task_id, error="Invalid input audio")
             return
@@ -101,34 +101,33 @@ class TaskService:
 
     async def send_text(self, task_id: UUID, schema: TaskTextCreateSchema):
         await self.task_repository.update(task_id, text=schema.text)
-        calories_data = []
         try:
-            foods = await self.external_repository.extract_food_names(schema.text)
-            for food in foods:
-                data = await self.mealdb_repository.search_product(food["name"], food["size"], food["action"])
-                if data is None:
-                    data = await self.external_repository.recognize_calories_from_text("Блюдо: " + food["name"] + ". Размер: " + food["size"])
-                    data = MealDBProduct(
-                        product=food["name"],
-                        weight=food["size"],
-                        action=food["action"],
-                        calories=data[0]["kilocalories_per100g"],
-                        fats=data[0]["fats_per100g"],
-                        carbohydrates=data[0]["carbohydrates_per100g"],
-                        fiber=data[0]["fiber_per100g"]
-                    )
-                calories_data.append(data)
+            response = await self.external_repository.recognize_calories_from_text(schema.text)
         except Exception as e:
             logger.exception(e)
             await self.task_repository.update(task_id, error="Internal error")
             return
+        try:
+            response = ExternalResponseSchema.model_validate(response)
+        except pydantic.ValidationError as e:
+            logger.error("Invalid external text response get")
+            logger.exception(e)
+            await self.task_repository.update(task_id, error="Invalid input image")
+            return
         items = [
-            TaskItem(kilocalories_per100g=i.calories, fats_per100g=i.fats,
-                     carbohydrates_per100g=i.carbohydrates, fiber_per100g=i.fiber,
-                     product=i.product, weight=i.weight, action=i.action,
-                     task_id=task_id)
-            for i in calories_data
+            TaskItem(
+                product=item.dish_name,
+                kilocalories_per100g=item.nutrition.calories / item.weight * 100,
+                fiber_per100g=item.nutrition.protein / item.weight * 100,
+                fats_per100g=item.nutrition.fats / item.weight * 100,
+                carbohydrates_per100g=item.nutrition.carbohydrates / item.weight * 100,
+                weight=item.weight,
+                ingredients=item.model_dump()["ingredients"],
+                task_id=task_id,
+            )
+            for item in response.dishes
         ]
+        await self.task_repository.update(task_id, comment=response.commentary)
         await self.task_repository.create_items(*items)
 
     async def send_text_sport(self, task_id: UUID, schema: TaskTextCreateSchema):
@@ -148,3 +147,20 @@ class TaskService:
 
     async def get(self, task_id: UUID) -> Task:
         return await self.task_repository.get(task_id)
+
+    async def send_edit(self, old_task_id: UUID, new_task_id: UUID, schema: TaskEditSchema):
+        """Get task, edit data and create new task with updated fields"""
+        model = await self.task_repository.get(old_task_id)
+        model_schema = TaskSchema.model_validate(model)
+        response = await self.external_repository.edit_meal_text(model_schema.model_dump_json(), schema.user_input)
+
+        try:
+            response = TaskSchema.model_validate(response)
+        except pydantic.ValidationError as e:
+            logger.debug("Invalid external text response get")
+            logger.exception(e)
+            await self.task_repository.update(new_task_id, error="Invalid input text")
+            return
+
+        items = [TaskItem(**i.model_dump(exclude="total_kilocalories"), task_id=new_task_id) for i in response.items]
+        await self.task_repository.create_items(*items)

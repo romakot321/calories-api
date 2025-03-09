@@ -5,18 +5,18 @@ class ExternalResponseSchema(BaseModel):
     class Dish(BaseModel):
         class Ingredient(BaseModel):
             ingredient: str
-            weight: int
+            weight: float
 
         class Nutrition(BaseModel):
-            calories: int
-            protein: int
-            fats: int
-            carbohydrates: int
+            calories: float
+            protein: float
+            fats: float
+            carbohydrates: float
 
         dish_name: str
         ingredients: list[Ingredient]
         nutrition: Nutrition
-        weight: int
+        weight: float
 
     dishes: list[Dish]
     commentary: str
