@@ -3,7 +3,7 @@ from uuid import UUID
 from . import validate_api_token
 
 from app.services.task import TaskService
-from app.schemas.task import TaskAudioSchema, TaskSchema, TaskTextCreateSchema
+from app.schemas.task import TaskAudioSchema, TaskEditSchema, TaskSchema, TaskTextCreateSchema
 
 
 router = APIRouter(prefix="/api/task", tags=["Meal recognition task"])
@@ -154,4 +154,19 @@ async def get_text_sport_task(
         service: TaskService = Depends()
 ):
     return await service.get(task_id)
+
+
+@router.post("/{task_id}/edit", response_model=TaskSchema)
+async def edit_task(
+        task_id: UUID,
+        background_tasks: BackgroundTasks,
+        schema: TaskEditSchema,
+        _=Depends(validate_api_token),
+        service: TaskService = Depends()
+):
+    """Update meal with provided user input and create new task. For example, replace tunica with salmon"""
+    await service.get(task_id)
+    model = await service.create()
+    background_tasks.add_task(service.send_edit, task_id, model.id, schema)
+    return model
 

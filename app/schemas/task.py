@@ -8,7 +8,6 @@ class TaskSchema(BaseModel):
         product: str | None = None
         weight: float | None = None
         kilocalories_per100g: float | None = None
-        proteins_per100g: float | None = None
         fats_per100g: float | None = None
         carbohydrates_per100g: float | None = None
         fiber_per100g: float | None = None
@@ -69,3 +68,7 @@ class TaskAudioSchema(BaseModel):
 
 class TaskTextCreateSchema(BaseModel):
     text: str
+
+
+class TaskEditSchema(BaseModel):
+    user_input: str
