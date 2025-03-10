@@ -3,7 +3,7 @@ from uuid import UUID
 from . import validate_api_token
 
 from app.services.task import TaskService
-from app.schemas.task import TaskAudioSchema, TaskEditSchema, TaskSchema, TaskTextCreateSchema
+from app.schemas.task import Language, TaskAudioSchema, TaskEditSchema, TaskSchema, TaskTextCreateSchema
 
 
 router = APIRouter(prefix="/api/task", tags=["Meal recognition task"])
@@ -78,24 +78,26 @@ async def create_text_sport_task(
 @router.post("/image", response_model=TaskSchema)
 async def create_image_task(
         background_tasks: BackgroundTasks,
+        language: Language = Query(Language.russian),
         _=Depends(validate_api_token),
         file: UploadFile = Depends(_validate_file_is_image),
         service: TaskService = Depends()
 ):
     model = await service.create()
-    background_tasks.add_task(service.send, model.id, await file.read())
+    background_tasks.add_task(service.send, model.id, await file.read(), language)
     return model
 
 
 @router.post("/audio/meal", response_model=TaskSchema)
 async def create_audio_task(
         background_tasks: BackgroundTasks,
+        language: Language = Query(Language.russian),
         _=Depends(validate_api_token),
         file: UploadFile = Depends(_validate_file_is_audio),
         service: TaskService = Depends()
 ):
     model = await service.create()
-    background_tasks.add_task(service.send_audio, model.id, await file.read())
+    background_tasks.add_task(service.send_audio, model.id, await file.read(), language)
     return model
 
 

@@ -1,3 +1,4 @@
+from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, computed_field, Json
 from uuid import UUID
 
@@ -66,9 +67,16 @@ class TaskAudioSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class Language(Enum):
+    russian = "Russian"
+    english = "english"
+
+
 class TaskTextCreateSchema(BaseModel):
     text: str
+    language: Language = Language.russian
 
 
 class TaskEditSchema(BaseModel):
     user_input: str
+    language: Language = Language.russian

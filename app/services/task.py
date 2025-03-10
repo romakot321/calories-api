@@ -10,7 +10,7 @@ from app.repositories.task import TaskRepository
 from app.repositories.external import ExternalRepository
 from app.repositories.translate import TranslateRepository
 from app.schemas.meal_db import MealDBProduct
-from app.schemas.task import TaskEditSchema, TaskSchema, TaskTextCreateSchema
+from app.schemas.task import Language, TaskEditSchema, TaskSchema, TaskTextCreateSchema
 from app.schemas.external import (
     ExternalAudioMealResponseSchema,
     ExternalAudioSportResponseSchema,
@@ -36,8 +36,8 @@ class TaskService:
         model = await self.task_repository.create(Task())
         return TaskSchema.model_validate(model)
 
-    async def send(self, task_id: UUID, file_raw: bytes):
-        response = await self.external_repository.send(file_raw)
+    async def send(self, task_id: UUID, file_raw: bytes, language: Language):
+        response = await self.external_repository.send(file_raw, language.value)
         try:
             response = ExternalResponseSchema.model_validate(response)
         except pydantic.ValidationError as e:
@@ -63,14 +63,16 @@ class TaskService:
         await self.task_repository.update(task_id, comment=response.commentary)
         await self.task_repository.create_items(*items)
 
-    async def send_audio(self, task_id: UUID, file_raw: bytes):
+    async def send_audio(self, task_id: UUID, file_raw: bytes, language: Language):
         buffer = io.BytesIO(file_raw)
         buffer.name = "tmp.mp3"
         response = await self.external_repository.send_audio(buffer)
         if response is None:
             await self.task_repository.update(task_id, error="Invalid input audio")
             return
-        await self.send_text(task_id, TaskTextCreateSchema(text=response["text"]))
+        await self.send_text(
+            task_id, TaskTextCreateSchema(text=response["text"], language=language)
+        )
 
     async def send_sport_audio(self, task_id: UUID, file_raw: bytes):
         buffer = io.BytesIO(file_raw)
@@ -99,10 +101,14 @@ class TaskService:
         ]
         await self.task_repository.create_items(*items)
 
-    async def send_text(self, task_id: UUID, schema: TaskTextCreateSchema):
+    async def send_text(
+        self, task_id: UUID, schema: TaskTextCreateSchema
+    ):
         await self.task_repository.update(task_id, text=schema.text)
         try:
-            response = await self.external_repository.recognize_calories_from_text(schema.text)
+            response = await self.external_repository.recognize_calories_from_text(
+                schema.text, schema.language.value
+            )
         except Exception as e:
             logger.exception(e)
             await self.task_repository.update(task_id, error="Internal error")
@@ -148,11 +154,15 @@ class TaskService:
     async def get(self, task_id: UUID) -> Task:
         return await self.task_repository.get(task_id)
 
-    async def send_edit(self, old_task_id: UUID, new_task_id: UUID, schema: TaskEditSchema):
+    async def send_edit(
+        self, old_task_id: UUID, new_task_id: UUID, schema: TaskEditSchema
+    ):
         """Get task, edit data and create new task with updated fields"""
         model = await self.task_repository.get(old_task_id)
         model_schema = TaskSchema.model_validate(model)
-        response = await self.external_repository.edit_meal_text(model_schema.model_dump_json(), schema.user_input)
+        response = await self.external_repository.edit_meal_text(
+            model_schema.model_dump_json(), schema.user_input, schema.language.value
+        )
 
         try:
             response = TaskSchema.model_validate(response)
@@ -162,6 +172,9 @@ class TaskService:
             await self.task_repository.update(new_task_id, error="Invalid input text")
             return
 
-        items = [TaskItem(**i.model_dump(exclude="total_kilocalories"), task_id=new_task_id) for i in response.items]
+        items = [
+            TaskItem(**i.model_dump(exclude="total_kilocalories"), task_id=new_task_id)
+            for i in response.items
+        ]
         await self.task_repository.create_items(*items)
         await self.task_repository.update(new_task_id, comment=response.comment)
