@@ -164,3 +164,4 @@ class TaskService:
 
         items = [TaskItem(**i.model_dump(exclude="total_kilocalories"), task_id=new_task_id) for i in response.items]
         await self.task_repository.create_items(*items)
+        await self.task_repository.update(new_task_id, comment=response.comment)

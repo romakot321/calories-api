@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, AliasChoices
 
 
 class ExternalResponseSchema(BaseModel):
@@ -19,7 +19,7 @@ class ExternalResponseSchema(BaseModel):
         weight: float
 
     dishes: list[Dish]
-    commentary: str
+    commentary: str = Field(validation_alias=AliasChoices("commentary", "comment"))
 
 
 class ExternalAudioSportResponseSchema(BaseModel):
