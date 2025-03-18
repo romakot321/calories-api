@@ -3,7 +3,7 @@ from uuid import UUID
 from . import validate_api_token
 
 from app.services.task import TaskService
-from app.schemas.task import Language, TaskAudioSchema, TaskEditSchema, TaskSchema, TaskTextCreateSchema
+from app.schemas.task import Language, TaskSportSchema, TaskEditSchema, TaskSchema, TaskTextCreateSchema
 
 
 router = APIRouter(prefix="/api/task", tags=["Meal recognition task"])
@@ -131,7 +131,7 @@ async def get_audio_meal_task(
     return await service.get(task_id)
 
 
-@router.get("/audio/sport/{task_id}", response_model=TaskAudioSchema)
+@router.get("/audio/sport/{task_id}", response_model=TaskSportSchema)
 async def get_audio_sport_task(
         task_id: UUID,
         _=Depends(validate_api_token),
@@ -149,7 +149,7 @@ async def get_text_meal_task(
     return await service.get(task_id)
 
 
-@router.get("/text/sport/{task_id}", response_model=TaskAudioSchema)
+@router.get("/text/sport/{task_id}", response_model=TaskSportSchema)
 async def get_text_sport_task(
         task_id: UUID,
         _=Depends(validate_api_token),
@@ -170,5 +170,19 @@ async def edit_task(
     await service.get(task_id)
     model = await service.create()
     background_tasks.add_task(service.send_edit, task_id, model.id, schema)
+    return model
+
+
+@router.post("/{task_id}/edit/sport", response_model=TaskSportSchema)
+async def edit_sport_task(
+        task_id: UUID,
+        background_tasks: BackgroundTasks,
+        schema: TaskEditSchema,
+        _=Depends(validate_api_token),
+        service: TaskService = Depends()
+):
+    await service.get(task_id)
+    model = await service.create()
+    background_tasks.add_task(service.send_edit_sport, task_id, model.id, schema)
     return model
 

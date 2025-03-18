@@ -40,24 +40,18 @@ class TaskSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class TaskAudioSchema(BaseModel):
-    class Item(BaseModel):
+class TaskSportSchema(BaseModel):
+    class SportItem(BaseModel):
         sport: str | None = Field(default=None, validation_alias="product")
-        kilocalories_per1h: float | None = Field(
+        total_kilocalories: float | None = Field(
             default=None, validation_alias="kilocalories_per100g"
         )
         time: float | None = Field(default=None, validation_alias="weight")
-        action: str | None = None
-
-        @computed_field
-        @property
-        def total_kilocalories(self) -> float | None:
-            return self.time * (self.kilocalories_per1h / 3600) if self.time else None
 
     id: UUID
     error: str | None = None
     text: str | None = None
-    items: list[Item]
+    items: list[SportItem]
 
     @computed_field
     @property

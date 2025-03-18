@@ -24,8 +24,9 @@ class ExternalResponseSchema(BaseModel):
 
 class ExternalAudioSportResponseSchema(BaseModel):
     class Item(BaseModel):
-        sport: str
+        name: str
         length: float
+        calories: float
 
     items: list[Item]
 

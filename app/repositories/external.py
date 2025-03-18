@@ -115,123 +115,20 @@ class ExternalRepository:
         except json.JSONDecodeError:
             return None
 
-    async def translate_meal_audio_response(self, text: str) -> dict | None:
-        response = await self.client.chat.completions.create(
-            model="gpt-4o",
+    async def recognize_sport_from_text(self, text: str, language: str) -> dict | None:
+        response = await self.deepseek_client.chat.completions.create(
+            model="deepseek-chat",
             messages=[
                 {
                     "role": "system",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Ты помощник, анализирующий ввод пользователя. Тебе необходимо определить каждый перечисленный вид еды, что с ним сделать и его КБЖУ, и ответить в JSON формате по следующей схеме:"
-                            '{"items": [{"product": "определенная еда", "weight": вес в граммах, "kilocalories_per100g": число ккал, "proteins_per100g": число протеинов, "fats_per100g": число жиров, "carbohydrates_per100g": число углеводов, "fiber_per100g": число белка, "action": "действие"}]}'
-                            'Числовые поля только положительные. Если еда не найдена, оставляй все поля равными 0. Action - строго "добавить" или "удалить". Добавить значит добавить продукт в список, удалить - убрать из него. Если пользователь сказал "замена", то пересчитывай значение КБЖУ для нового блюда. Если определить action не удалось, то пустое',
-                        }
-                    ],
+                    "content": f"Identify all sports mentioned in the given text, and specify the duration of each activity and the exact number of calories burned. Compile this information into a JSON structure with very accurate calorie estimations.\n\n# Steps\n\n1. Read the provided text.\n2. Identify all mentioned sports and their duration in seconds. If the duration is given in repetitions, calculate the total exercise time.\n3. For each sport, calculate the number of calories burned in kcal. Ensure that the calculations are very precise.\n4. Populate the JSON structure with the listed attributes for each sport.\n\n# Output Format\n\nPresent the result in a JSON list format with the key \"items\", where each element will be a sport object with the following keys:\n- \"name\": Name of the sport in {language} language.\n- \"length\": Duration of the activity in seconds.\n- \"calories\": Number of calories burned with high accuracy.\n\n# Notes\n\n- If the text poses challenges in identifying the sport, consult the context or provided units.\n- Ensure the JSON structure is correctly opened and closed, and all keys contain relevant information.\n- Prioritize accuracy in the calorie calculation, considering detailed factors such as activity intensity and possible provided user characteristics."
                 },
-                {"role": "user", "content": [{"type": "text", "text": text}]},
+                {"role": "user", "content": text},
             ],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "sport_metadata",
-                    "strict": True,
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "items": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "product": {"type": "string"},
-                                        "weight": {"type": "number"},
-                                        "kilocalories_per100g": {"type": "number"},
-                                        "proteins_per100g": {"type": "number"},
-                                        "fats_per100g": {"type": "number"},
-                                        "carbohydrates_per100g": {"type": "number"},
-                                        "action": {"type": "string"},
-                                        "fiber_per100g": {"type": "number"},
-                                    },
-                                    "required": [
-                                        "product",
-                                        "weight",
-                                        "action",
-                                        "kilocalories_per100g",
-                                        "proteins_per100g",
-                                        "fats_per100g",
-                                        "carbohydrates_per100g",
-                                        "fiber_per100g",
-                                    ],
-                                    "additionalProperties": False,
-                                },
-                            }
-                        },
-                        "required": ["items"],
-                        "additionalProperties": False,
-                    },
-                },
-            },
+            max_tokens=1024,
             temperature=0.7,
-            max_completion_tokens=2048,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
-        )
-
-        logger.debug(f"Get response: {response}")
-        try:
-            return json.loads(response.choices[0].message.content)
-        except json.JSONDecodeError:
-            return None
-
-    async def translate_sport_audio_response(self, text: str) -> dict | None:
-        response = await self.client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "system",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": 'Ты помощник, анализирующий ввод пользователя. Тебе необходимо определить каждый перечисленный вид спорта и его продолжительность занятия, и ответить в JSON формате по следующей схеме: {"items": [{"sport": "определенный спорт", "length": "продолжительность"}]}. Поле sport - только общепринятое употребление в изначальной форме, поле length - только положительное целое число секунд.',
-                        }
-                    ],
-                },
-                {"role": "user", "content": [{"type": "text", "text": text}]},
-            ],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "sport_metadata",
-                    "strict": True,
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "items": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "sport": {"type": "string"},
-                                        "length": {"type": "number"},
-                                    },
-                                    "required": ["sport", "length"],
-                                    "additionalProperties": False,
-                                },
-                            }
-                        },
-                        "required": ["items"],
-                        "additionalProperties": False,
-                    },
-                },
-            },
-            temperature=0.7,
-            max_completion_tokens=2048,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
+            response_format={"type": "json_object"},
+            stream=False,
         )
 
         logger.debug(f"Get response: {response}")
@@ -246,10 +143,33 @@ class ExternalRepository:
             messages=[
                 {
                     "role": "system",
-                    "content": 'JSON format:\n- `dishes`: a list of objects representing the dishes containing:\n  - `dish_name`: the general name in {language} of the combined dish.\n  - `ingredients`: a list of objects in {language} for each identified ingredient and its weight with gram precision to `ingredient` and `weight` fields.\n  - `nutrition`: an object with fields `calories`, `protein`, `fats`, `carbohydrates` calculated with gram precision.\n  - `weight`: the total weight of the combined dish with gram precision.\n- `commentary`: a string with categorizing remarks of the combined dish. Use varied text and emojis.' \
-                            'Modify the nutritional values (calories, proteins, fats, and carbohydrates) and the dish or ingredient composition and a commentary in {language} language on the category of the dish as either healthy or unhealthy. Praise the dish if it is healthy, or offer friendly advice on moderation if it is unhealthy. Update is based on user input within a JSON structure.\n\nReceive a JSON structure containing nutritional information for a dish and its ingredients. Accept user input to specify changes, which may include adding, removing, or replacing entire dishes or specific ingredients, along with recalculating their nutritional values. Implement these changes while ensuring the data remains correctly formatted.\n\n# Steps\n\n1. Obtain the JSON structure containing the nutritional information for the dish and its ingredients.\n2. Receive input from the user specifying changes, which may involve:\n   - Altering nutritional values with gram precision (e.g., calories, proteins) for existing items.\n   - Adding new dishes or ingredients with calculated nutritional values.\n   - Removing existing dishes or ingredients.\n   - Replacing existing dishes or ingredients with new ones.\n3. Apply the specified changes to the corresponding fields in the JSON data.\n4. Recalculate the total nutritional values with gram precision (calories, proteins, fats, and carbohydrates) to ensure consistency.\n5. Rewrite "commentary" field for new dishes, use emojis.\n6. Ensure that all data remains in the correct format.\n\n# Output Format\n\nReturn the updated data in JSON format without using code blocks.\n\n# Notes\n\n- Ensure that changes match the user\'s request exactly',
+                    "content": f'JSON format:\n- `dishes`: a list of objects representing the dishes containing:\n  - `dish_name`: the general name in {language} of the combined dish.\n  - `ingredients`: a list of objects in {language} for each identified ingredient and its weight with gram precision to `ingredient` and `weight` fields.\n  - `nutrition`: an object with fields `calories`, `protein`, `fats`, `carbohydrates` calculated with gram precision.\n  - `weight`: the total weight of the combined dish with gram precision.\n- `commentary`: a string with categorizing remarks of the combined dish. Use varied text and emojis.' \
+                            f'Modify the nutritional values (calories, proteins, fats, and carbohydrates) and the dish or ingredient composition and a commentary in {language} language on the category of the dish as either healthy or unhealthy. Praise the dish if it is healthy, or offer friendly advice on moderation if it is unhealthy. Update is based on user input within a JSON structure.\n\nReceive a JSON structure containing nutritional information for a dish and its ingredients. Accept user input to specify changes, which may include adding, removing, or replacing entire dishes or specific ingredients, along with recalculating their nutritional values. Implement these changes while ensuring the data remains correctly formatted.\n\n# Steps\n\n1. Obtain the JSON structure containing the nutritional information for the dish and its ingredients.\n2. Receive input from the user specifying changes, which may involve:\n   - Altering nutritional values with gram precision (e.g., calories, proteins) for existing items.\n   - Adding new dishes or ingredients with calculated nutritional values.\n   - Removing existing dishes or ingredients.\n   - Replacing existing dishes or ingredients with new ones.\n3. Apply the specified changes to the corresponding fields in the JSON data.\n4. Recalculate the total nutritional values with gram precision (calories, proteins, fats, and carbohydrates) to ensure consistency.\n5. Rewrite "commentary" field for new dishes, use emojis.\n6. Ensure that all data remains in the correct format.\n\n# Output Format\n\nReturn the updated data in JSON format without using code blocks.\n\n# Notes\n\n- Ensure that changes match the user\'s request exactly',
                 },
                 {"role": "user", "content": "JSON data: " + meal_json},
+                {"role": "user", "content": "User input: " + text},
+            ],
+            max_tokens=2048,
+            temperature=0.7,
+            response_format={"type": "json_object"},
+            stream=False,
+        )
+
+        logger.debug(f"Get response: {response}")
+        try:
+            return json.loads(response.choices[0].message.content)
+        except json.JSONDecodeError:
+            return None
+
+    async def edit_sport_text(self, sport_json: str, text: str, language: str) -> list[dict]:
+        response = await self.deepseek_client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"JSON format:\n- `items`: a list of objects representing the sports containing:\n  - `name`: the general name in {language} of the sport.\n  - `length`: duration in seconds of the sport.\n  - `calories`: the total calories of the sport.\n\nModify the calories values or sports composition. Update is based on user input within a JSON structure.\n\nReceive a JSON structure containing calories information for a sport. Accept user input to specify changes, which may include adding, removing, or replacing entire sport, along with recalculating their calories values. Implement these changes while ensuring the data remains correctly formatted.\n\n# Steps\n\n1. Obtain the JSON structure containing the nutritional information for the dish and its ingredients.\n2. Receive input from the user specifying changes, which may involve:\n   - Altering calories values with gram precision for existing items.\n   - Adding new sports with calculated nutritional values.\n   - Removing existing sports.\n   - Replacing existing sports with new ones.\n3. Apply the specified changes to the corresponding fields in the JSON data.\n4. Recalculate the total calories values with gram precision to ensure consistency.\n5. Ensure that all data remains in the correct format.\n\n# Output Format\n\nReturn the updated data in JSON format without using code blocks.\n\n# Notes\n\n- Ensure that changes match the user's request exactly."
+                },
+                {"role": "user", "content": "JSON data: " + sport_json},
                 {"role": "user", "content": "User input: " + text},
             ],
             max_tokens=2048,
