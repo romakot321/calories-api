@@ -51,6 +51,7 @@ class TaskSportSchema(BaseModel):
     id: UUID
     error: str | None = None
     text: str | None = None
+    comment: str | None = None
     items: list[SportItem]
 
     @computed_field
