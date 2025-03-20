@@ -134,7 +134,7 @@ class TaskService:
             TaskItem(
                 product=i.name,
                 weight=i.length,
-                kilocalories_per100g=i.total_kilocalories,
+                kilocalories_per100g=i.calories,
                 task_id=task_id,
             )
             for i in response.items
