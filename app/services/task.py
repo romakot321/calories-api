@@ -140,6 +140,7 @@ class TaskService:
             for i in response.items
         ]
         await self.task_repository.create_items(*items)
+        await self.task_repository.update(task_id, comment=response.comment)
 
     async def get(self, task_id: UUID) -> Task:
         return await self.task_repository.get(task_id)

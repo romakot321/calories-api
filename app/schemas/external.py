@@ -29,6 +29,7 @@ class ExternalAudioSportResponseSchema(BaseModel):
         calories: float
 
     items: list[Item]
+    comment: str
 
 
 class ExternalAudioMealResponseSchema(BaseModel):
