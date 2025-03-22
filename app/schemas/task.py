@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel, ConfigDict, Field, computed_field, Json
+from pydantic import BaseModel, ConfigDict, Field, computed_field, Json, AliasChoices
 from uuid import UUID
 
 
@@ -42,11 +42,13 @@ class TaskSchema(BaseModel):
 
 class TaskSportSchema(BaseModel):
     class SportItem(BaseModel):
-        sport: str | None = Field(default=None, validation_alias="product")
+        sport: str | None = Field(default=None, validation_alias=AliasChoices("product", "sport"))
         total_kilocalories: float | None = Field(
-            default=None, validation_alias="kilocalories_per100g"
+            default=None, validation_alias=AliasChoices("kilocalories_per100g", "total_kilocalories")
         )
-        time: float | None = Field(default=None, validation_alias="weight")
+        time: float | None = Field(default=None, validation_alias=AliasChoices("weight", "time"))
+
+        model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     error: str | None = None
@@ -57,7 +59,7 @@ class TaskSportSchema(BaseModel):
     @computed_field
     @property
     def total_kilocalories(self) -> int:
-        return sum(map(lambda i: i.total_kilocalories, self.items))
+        return sum(map(lambda i: i.total_kilocalories if i.total_kilocalories is not None else 0, self.items))
 
     model_config = ConfigDict(from_attributes=True)
 
