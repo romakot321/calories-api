@@ -3,7 +3,7 @@ from uuid import UUID
 from . import validate_api_token
 
 from app.services.task import TaskService
-from app.schemas.task import Language, TaskSportSchema, TaskEditSchema, TaskSchema, TaskTextCreateSchema
+from app.schemas.task import Language, TaskConsultationCreateSchema, TaskConsultationSchema, TaskSportSchema, TaskEditSchema, TaskSchema, TaskTextCreateSchema
 
 
 router = APIRouter(prefix="/api/task", tags=["Meal recognition task"])
@@ -185,4 +185,9 @@ async def edit_sport_task(
     model = await service.create()
     background_tasks.add_task(service.send_edit_sport, task_id, model.id, schema)
     return model
+
+
+@router.post("/consultation", response_model=TaskConsultationSchema)
+async def get_consultation(schema: TaskConsultationCreateSchema):
+    pass
 

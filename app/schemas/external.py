@@ -45,3 +45,18 @@ class ExternalAudioMealResponseSchema(BaseModel):
 
     items: list[Item]
 
+
+class ExternalConsultationSchema(BaseModel):
+    class UserData(BaseModel):
+        name: str | None
+        gender: str | None
+        workout_coefficient: float | None
+        weight: int | None
+        height: int | None
+        age: int | None
+        target_weight: int | None
+        increase_coefficient: float | None
+
+    prompt: str
+    user_data: UserData | None = None
+

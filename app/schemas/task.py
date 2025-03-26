@@ -75,3 +75,22 @@ class TaskTextCreateSchema(BaseModel):
 class TaskEditSchema(BaseModel):
     user_input: str
     language: Language = Language.russian
+
+
+class TaskConsultationCreateSchema(BaseModel):
+    class UserData(BaseModel):
+        name: str | None
+        gender: str | None
+        workout_coefficient: float | None
+        weight: int | None
+        height: int | None
+        age: int | None
+        target_weight: int | None
+        increase_coefficient: float | None
+
+    prompt: str
+    user_data: UserData | None = None
+
+
+class TaskConsultationSchema(BaseModel):
+    text: str
