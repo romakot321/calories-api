@@ -89,6 +89,7 @@ class TaskConsultationCreateSchema(BaseModel):
         age: int | None
         target_weight: int | None
         increase_coefficient: float | None
+        calories_norm: float | None
 
     prompt: str
     user_data: UserData | None = None

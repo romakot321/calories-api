@@ -10,10 +10,11 @@ from app.repositories.task import TaskRepository
 from app.repositories.external import ExternalRepository
 from app.repositories.translate import TranslateRepository
 from app.schemas.meal_db import MealDBProduct
-from app.schemas.task import Language, TaskConsultationCreateSchema, TaskEditSchema, TaskSchema, TaskSportSchema, TaskTextCreateSchema
+from app.schemas.task import Language, TaskConsultationCreateSchema, TaskConsultationSchema, TaskEditSchema, TaskSchema, TaskSportSchema, TaskTextCreateSchema
 from app.schemas.external import (
     ExternalAudioMealResponseSchema,
     ExternalAudioSportResponseSchema,
+    ExternalConsultationSchema,
     ExternalResponseSchema,
 )
 from app.db.tables import Task, TaskItem
@@ -199,5 +200,7 @@ class TaskService:
         ]
         await self.task_repository.create_items(*items)
 
-    async def get_consultation(self, schema: TaskConsultationCreateSchema):
-        pass
+    async def get_consultation(self, schema: TaskConsultationCreateSchema) -> TaskConsultationSchema:
+        request = ExternalConsultationSchema.model_validate(schema.model_dump())
+        text = await self.external_repository.get_consulation(request)
+        return TaskConsultationSchema(text=text)
