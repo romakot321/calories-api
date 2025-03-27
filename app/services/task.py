@@ -155,21 +155,41 @@ class TaskService:
         response = await self.external_repository.edit_meal_text(
             model_schema.model_dump_json(), schema.user_input, schema.language.value
         )
+        comment = None
 
         try:
             response = TaskSchema.model_validate(response)
-        except pydantic.ValidationError as e:
-            logger.debug("Invalid external text response get")
-            logger.exception(e)
-            await self.task_repository.update(new_task_id, error="Invalid input text")
-            return
-
-        items = [
-            TaskItem(**i.model_dump(exclude="total_kilocalories"), task_id=new_task_id)
-            for i in response.items
-        ]
+        except pydantic.ValidationError as e1:
+            try:
+                response = ExternalResponseSchema.model_validate(response)
+            except pydantic.ValidationError as e2:
+                logger.debug("Invalid external text response get")
+                logger.exception(e1)
+                logger.exception(e2)
+                await self.task_repository.update(new_task_id, error="Invalid input text")
+                return
+            items = [
+                TaskItem(
+                    product=item.dish_name,
+                    kilocalories_per100g=item.nutrition.calories / item.weight * 100,
+                    fiber_per100g=item.nutrition.protein / item.weight * 100,
+                    fats_per100g=item.nutrition.fats / item.weight * 100,
+                    carbohydrates_per100g=item.nutrition.carbohydrates / item.weight * 100,
+                    weight=item.weight,
+                    ingredients=item.model_dump()["ingredients"],
+                    task_id=new_task_id,
+                )
+                for item in response.dishes
+            ]
+            comment = response.commentary
+        else:
+            items = [
+                TaskItem(**i.model_dump(exclude="total_kilocalories"), task_id=new_task_id)
+                for i in response.items
+            ]
+            comment = response.comment
         await self.task_repository.create_items(*items)
-        await self.task_repository.update(new_task_id, comment=response.comment)
+        await self.task_repository.update(new_task_id, comment=comment)
 
     async def send_edit_sport(
         self, old_task_id: UUID, new_task_id: UUID, schema: TaskEditSchema
