@@ -211,9 +211,9 @@ class ExternalRepository:
                 if schema.user_data is not None
                 else {"role": "user", "content": "user_data: {}"}
             ],
-            max_tokens=2048,
-            temperature=0.7,
-            response_format={"type": "json_object"},
+            max_tokens=512,
+            temperature=1.0,
+            response_format={"type": "text"},
             stream=False,
         )
 
