@@ -50,7 +50,11 @@ class PGTaskRepository(ITaskRepository):
         return self._to_domain(model)
 
     async def update_by_pk(self, pk: UUID, data: TaskUpdate) -> Task:
-        query = update(TaskDB).filter_by(id=pk).values(**data.model_dump(mode="json", exclude_none=True))
+        query = (
+            update(TaskDB)
+            .filter_by(id=pk)
+            .values(**data.model_dump(mode="json", exclude_none=True, exclude={"products", "sports"}))
+        )
         await self.session.execute(query)
 
         if data.products:
@@ -58,6 +62,7 @@ class PGTaskRepository(ITaskRepository):
             self.session.add_all(
                 [
                     TaskProductDB(
+                        task_id=pk,
                         **product.model_dump(mode="json", exclude={"ingredients"}),
                         ingredients=[
                             TaskProductIngredientDB(**ing.model_dump(mode="json")) for ing in product.ingredients
@@ -71,6 +76,7 @@ class PGTaskRepository(ITaskRepository):
             self.session.add_all(
                 [
                     TaskSportDB(
+                        task_id=pk,
                         **sport.model_dump(mode="json"),
                     )
                     for sport in data.sports
@@ -96,7 +102,7 @@ class PGTaskRepository(ITaskRepository):
                         TaskProductIngredient(
                             name=ing.name,
                             weight=ing.weight,
-                            calories=ing.kilocalories,
+                            calories=ing.calories,
                             proteins=ing.proteins,
                             fiber=ing.fiber,
                             carbohydrates=ing.carbohydrates,

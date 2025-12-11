@@ -1,6 +1,7 @@
 import base64
 from io import BytesIO
 import json
+from loguru import logger
 
 from src.core.config import settings
 from src.core.http.client import IHttpClient
@@ -19,7 +20,6 @@ class OpenaiMealTextTaskRunner(HttpApiClient, ITaskRunner[IntegrationTaskResultD
         super().__init__(client=client, source_url=self.api_url, token=self.token)
 
     def _make_payload(self, text: str, prompt: str) -> dict:
-        images_encoded = self._encode_images(images)
         payload = {
             "model": "gpt-4.1-mini",
             "input": [
@@ -53,7 +53,7 @@ class OpenaiMealTextTaskRunner(HttpApiClient, ITaskRunner[IntegrationTaskResultD
                                                     "name": {"type": "string"},
                                                     "weight": {"type": "number"},
                                                     "calories": {"type": "number"},
-                                                    "protein": {"type": "number"},
+                                                    "proteins": {"type": "number"},
                                                     "fats": {"type": "number"},
                                                     "carbohydrates": {"type": "number"},
                                                     "fiber": {"type": "number"},
@@ -63,7 +63,7 @@ class OpenaiMealTextTaskRunner(HttpApiClient, ITaskRunner[IntegrationTaskResultD
                                             },
                                         },
                                         "calories": {"type": "number"},
-                                        "protein": {"type": "number"},
+                                        "proteins": {"type": "number"},
                                         "fats": {"type": "number"},
                                         "carbohydrates": {"type": "number"},
                                         "fiber": {"type": "number"},
@@ -88,7 +88,8 @@ class OpenaiMealTextTaskRunner(HttpApiClient, ITaskRunner[IntegrationTaskResultD
         if data.text is None:
             raise ValueError("Empty input")
 
-        payload = self._make_payload(data.text, MESSAGE_ANALYZE_PROMPT.format(language=data.language))
+        prompt = MESSAGE_ANALYZE_PROMPT.replace("{language}", data.language)
+        payload = self._make_payload(data.text, prompt)
         response = await self.request("POST", "/v1/responses", json=payload)
         result = self.validate_response(response.data, OpenaiResponse)
 
@@ -97,6 +98,8 @@ class OpenaiMealTextTaskRunner(HttpApiClient, ITaskRunner[IntegrationTaskResultD
         if not isinstance(result.output[0].content[0], OutputText):
             raise ValueError(f"Unexpected content type in response: {type(result.output[0].content[0])}")
         result = json.loads(result.output[0].content[0].text).get("dishes")
+
+        logger.info(f"Finished MealTextTask with {result=}")
 
         return IntegrationTaskResultDTO(status=IntegrationTaskStatus.finished, result=result)
 
@@ -141,14 +144,14 @@ Analyze the meal for compliance with the plate rule and provide what is included
           "name": "...",
           "weight": 0.0,
           "calories": 0.0,
-          "protein": 0.0,
+          "proteins": 0.0,
           "fats": 0.0,
           "carbohydrates": 0.0,
           "fiber": 0.0
         }
       ],
       "calories": 0.0,
-      "protein": 0.0,
+      "proteins": 0.0,
       "fats": 0.0,
       "carbohydrates": 0.0,
       "fiber": 0.0

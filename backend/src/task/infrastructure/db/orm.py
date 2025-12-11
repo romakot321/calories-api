@@ -12,7 +12,7 @@ class TaskProductIngredientDB(BaseMixin, Base):
 
     name: Mapped[str | None]
     weight: Mapped[float | None]
-    kilocalories: Mapped[float | None]
+    calories: Mapped[float | None]
     proteins: Mapped[float | None] = mapped_column(doc="Белки")
     fats: Mapped[float | None]
     carbohydrates: Mapped[float | None]
@@ -33,6 +33,7 @@ class TaskProductDB(BaseMixin, Base):
     fats: Mapped[float | None]
     carbohydrates: Mapped[float | None]
     fiber: Mapped[float | None] = mapped_column(doc="Клетчатка")
+    commentary: Mapped[str | None]
 
     ingredients: Mapped[list["TaskProductIngredientDB"]] = relationship(back_populates="product", lazy="selectin")
     task: Mapped['TaskDB'] = relationship(back_populates="products")

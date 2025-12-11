@@ -23,10 +23,10 @@ wait_for_db() {
 }
 
 # Wait for database and run migrations
-wait_for_db
+# wait_for_db
 
 echo "Running database migrations..."
 alembic upgrade head
 
 echo "Starting application..."
-exec gunicorn src.main:app -w 1 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:80 --forwarded-allow-ips="*"
+exec proxychains4 gunicorn src.main:app -w 1 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:80 --forwarded-allow-ips="*"

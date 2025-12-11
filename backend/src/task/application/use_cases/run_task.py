@@ -27,21 +27,20 @@ class RunTaskUseCase:
         self.runner = runner
         self.http_client = http_client
 
-    async def execute(self, task_id: UUID, dto: TaskCreateDTO | TaskCreateWithTextDTO, file: BytesIO | None) -> None:
+    async def execute(self, task_id: UUID, webhook_url: str | None, command: TaskRun) -> None:
         """Run it in background"""
-        command = TaskRun(**dto.model_dump(), file=file)
         logger.info(f"Running task {task_id}")
         logger.debug(f"Task {task_id} params: {command}")
         result, error = await self._run(command)
 
         if error is not None or result is None:
             result = await self._store_error(task_id, status=TaskStatus.failed, error=error)
-            await self._send_webhook(task_id, TaskResultDTO(**result.model_dump()), dto.webhook_url)
+            await self._send_webhook(task_id, TaskResultDTO(**result.model_dump()), webhook_url)
             return
 
         logger.info(f"Task {task_id} result: {result}")
         result = await self._store_result(task_id, result)
-        await self._send_webhook(task_id, TaskResultDTO(**result.model_dump()), dto.webhook_url)
+        await self._send_webhook(task_id, TaskResultDTO(**result.model_dump()), webhook_url)
 
     async def _send_webhook(self, task_id: UUID, result: TaskResultDTO, webhook_url: HttpUrl | None):
         if webhook_url is None:

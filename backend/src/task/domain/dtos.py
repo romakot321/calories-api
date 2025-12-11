@@ -50,21 +50,21 @@ class TaskCreateWithTextDTO(IntegrationTaskRunParamsDTO, BaseModel):
 class TaskProductIngredientDTO(BaseModel):
     name: str | None = None
     weight: float | None = None
-    kilocalories_per100g: float | None = None
-    proteins_per100g: float | None = Field(None, description="Клетчатка")
-    fats_per100g: float | None = None
-    carbohydrates_per100g: float | None = None
-    fiber_per100g: float | None = Field(None, description="Белки")
+    calories: float | None = None
+    proteins: float | None = Field(None, description="Клетчатка")
+    fats: float | None = None
+    carbohydrates: float | None = None
+    fiber: float | None = Field(None, description="Белки")
 
 
 class TaskProductDTO(BaseModel):
     name: str | None = None
     weight: float | None = None
-    kilocalories_per100g: float | None = None
-    proteins_per100g: float | None = Field(None, description="Клетчатка")
-    fats_per100g: float | None = None
-    carbohydrates_per100g: float | None = None
-    fiber_per100g: float | None = Field(None, description="Белки")
+    calories: float | None = None
+    proteins: float | None = Field(None, description="Клетчатка")
+    fats: float | None = None
+    carbohydrates: float | None = None
+    fiber: float | None = Field(None, description="Белки")
 
     ingredients: list[TaskProductIngredientDTO]
 
