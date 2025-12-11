@@ -19,7 +19,6 @@ class OpenaiSportEditRecognitionTaskRunner(HttpApiClient, ITaskRunner[Integratio
         super().__init__(client=client, source_url=self.api_url, token=self.token)
 
     def _make_payload(self, text: str, prompt: str) -> dict:
-        images_encoded = self._encode_images(images)
         payload = {
             "model": "gpt-4.1-mini",
             "input": [
@@ -67,7 +66,7 @@ class OpenaiSportEditRecognitionTaskRunner(HttpApiClient, ITaskRunner[Integratio
         if data.text is None:
             raise ValueError("Empty input")
 
-        payload = self._make_payload(data.text, MESSAGE_ANALYZE_PROMPT.format(language=data.language))
+        payload = self._make_payload(data.text, MESSAGE_ANALYZE_PROMPT.replace("{language}", data.language))
         response = await self.request("POST", "/v1/responses", json=payload)
         result = self.validate_response(response.data, OpenaiResponse)
 

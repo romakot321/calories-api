@@ -19,7 +19,6 @@ class OpenaiMealEditRecognitionTaskRunner(HttpApiClient, ITaskRunner[Integration
         super().__init__(client=client, source_url=self.api_url, token=self.token)
 
     def _make_payload(self, text: str, prompt: str) -> dict:
-        images_encoded = self._encode_images(images)
         payload = {
             "model": "gpt-4.1-mini",
             "input": [
@@ -53,7 +52,7 @@ class OpenaiMealEditRecognitionTaskRunner(HttpApiClient, ITaskRunner[Integration
                                                     "name": {"type": "string"},
                                                     "weight": {"type": "number"},
                                                     "calories": {"type": "number"},
-                                                    "protein": {"type": "number"},
+                                                    "proteins": {"type": "number"},
                                                     "fats": {"type": "number"},
                                                     "carbohydrates": {"type": "number"},
                                                     "fiber": {"type": "number"},
@@ -63,7 +62,7 @@ class OpenaiMealEditRecognitionTaskRunner(HttpApiClient, ITaskRunner[Integration
                                             },
                                         },
                                         "calories": {"type": "number"},
-                                        "protein": {"type": "number"},
+                                        "proteins": {"type": "number"},
                                         "fats": {"type": "number"},
                                         "carbohydrates": {"type": "number"},
                                         "fiber": {"type": "number"},
@@ -105,8 +104,8 @@ MESSAGE_ANALYZE_PROMPT = """
 JSON format:
     - `dishes`: a list of objects representing the dishes containing:
     - `dish_name`: the general name in {language} of the combined dish.
-    - `ingredients`: a list of objects in {language} for each identified ingredient and its weight with gram precision to `ingredient_name` and `weight`, `calories`, `protein`, `fats`, `carbohydrates`, `fiber` fields.
-    - `calories`, `protein`, `fats`, `carbohydrates`, `fiber` calculated with gram precision.
+    - `ingredients`: a list of objects in {language} for each identified ingredient and its weight with gram precision to `ingredient_name` and `weight`, `calories`, `proteins`, `fats`, `carbohydrates`, `fiber` fields.
+    - `calories`, `proteins`, `fats`, `carbohydrates`, `fiber` calculated with gram precision.
     - `weight`: the total weight of the combined dish with gram precision.
     - `commentary`: a string with categorizing remarks of the combined dish. Use varied text and emojis.
 

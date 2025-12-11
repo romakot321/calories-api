@@ -1,3 +1,4 @@
+from uuid import uuid4
 from fastapi import HTTPException
 
 from src.db.exceptions import DBModelConflictException, DBModelNotFoundException
@@ -11,7 +12,7 @@ class CreateUserUseCase:
         self.uow = uow
 
     async def execute(self, dto: UserCreateDTO) -> UserReadDTO:
-        user = User(**dto.model_dump())
+        user = User(id=uuid4(), **dto.model_dump())
         async with self.uow:
             try:
                 user = await self.uow.users.get_by_apphud_id(dto.apphud_id)

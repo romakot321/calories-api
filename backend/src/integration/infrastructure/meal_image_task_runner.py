@@ -59,7 +59,7 @@ class OpenaiMealImageTaskRunner(HttpApiClient, ITaskRunner[IntegrationTaskResult
                                                     "name": {"type": "string"},
                                                     "weight": {"type": "number"},
                                                     "calories": {"type": "number"},
-                                                    "protein": {"type": "number"},
+                                                    "proteins": {"type": "number"},
                                                     "fats": {"type": "number"},
                                                     "carbohydrates": {"type": "number"},
                                                     "fiber": {"type": "number"},
@@ -69,7 +69,7 @@ class OpenaiMealImageTaskRunner(HttpApiClient, ITaskRunner[IntegrationTaskResult
                                             },
                                         },
                                         "calories": {"type": "number"},
-                                        "protein": {"type": "number"},
+                                        "proteins": {"type": "number"},
                                         "fats": {"type": "number"},
                                         "carbohydrates": {"type": "number"},
                                         "fiber": {"type": "number"},
@@ -91,7 +91,9 @@ class OpenaiMealImageTaskRunner(HttpApiClient, ITaskRunner[IntegrationTaskResult
         return payload
 
     async def start(self, data: TaskRun) -> IntegrationTaskResultDTO:
-        payload = self._make_payload([data.file], MESSAGE_ANALYZE_PROMPT.format(language=data.language))
+        if data.file is None:
+            raise ValueError("Empty input")
+        payload = self._make_payload([data.file], MESSAGE_ANALYZE_PROMPT.replace("{language}", data.language))
         response = await self.request("POST", "/v1/responses", json=payload)
         result = self.validate_response(response.data, OpenaiResponse)
 
@@ -144,14 +146,14 @@ Analyze the meal for compliance with the plate rule and provide what is included
           "name": "...",
           "weight": 0.0,
           "calories": 0.0,
-          "protein": 0.0,
+          "proteins": 0.0,
           "fats": 0.0,
           "carbohydrates": 0.0,
           "fiber": 0.0
         }
       ],
       "calories": 0.0,
-      "protein": 0.0,
+      "proteins": 0.0,
       "fats": 0.0,
       "carbohydrates": 0.0,
       "fiber": 0.0

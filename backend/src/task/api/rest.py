@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import File, Depends, APIRouter, UploadFile, BackgroundTasks
 
 from src.core.auth import get_current_user_id
+from src.task.application.use_cases.build_task_params import BuildTaskParamsUseCase
 from src.task.domain.dtos import TaskCreateWithTextDTO, TaskReadDTO, TaskCreateDTO
 from src.task.api.dependencies import (
     TaskAudioMealRunnerDepend,
@@ -36,7 +37,8 @@ async def create_and_run_meal_from_image_task(
     file_buffer = BytesIO(await file.read())
     file_buffer.name = file.filename
     task = await CreateTaskUseCase(uow).execute(user_id, data, file_buffer)
-    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data, file_buffer)
+    cmd = await BuildTaskParamsUseCase(uow).execute(data, None, file_buffer)
+    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data.webhook_url, cmd)
     return task
 
 
@@ -50,7 +52,8 @@ async def create_and_run_meal_from_text_task(
     user_id: UUID = Depends(get_current_user_id),
 ):
     task = await CreateTaskUseCase(uow).execute(user_id, data, None)
-    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data, None)
+    cmd = await BuildTaskParamsUseCase(uow).execute(data)
+    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data.webhook_url, cmd)
     return task
 
 
@@ -64,7 +67,8 @@ async def create_and_run_sport_from_text_task(
     user_id: UUID = Depends(get_current_user_id),
 ):
     task = await CreateTaskUseCase(uow).execute(user_id, data, None)
-    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data, None)
+    cmd = await BuildTaskParamsUseCase(uow).execute(data)
+    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data.webhook_url, cmd)
     return task
 
 
@@ -81,7 +85,8 @@ async def create_and_run_meal_from_audio_task(
     file_buffer = BytesIO(await file.read())
     file_buffer.name = file.filename
     task = await CreateTaskUseCase(uow).execute(user_id, data, file_buffer)
-    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data, file_buffer)
+    cmd = await BuildTaskParamsUseCase(uow).execute(data, None, file_buffer)
+    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data.webhook_url, cmd)
     return task
 
 
@@ -98,7 +103,8 @@ async def create_and_run_sport_from_audio_task(
     file_buffer = BytesIO(await file.read())
     file_buffer.name = file.filename
     task = await CreateTaskUseCase(uow).execute(user_id, data, file_buffer)
-    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data, file_buffer)
+    cmd = await BuildTaskParamsUseCase(uow).execute(data, None, file_buffer)
+    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data.webhook_url, cmd)
     return task
 
 
@@ -108,11 +114,13 @@ async def create_and_run_edit_sport_task(
     http_client: HttpClientDepend,
     runner: TaskEditSportRunnerDepend,
     background_tasks: BackgroundTasks,
+    task_id: UUID,
     data: TaskCreateWithTextDTO = Depends(TaskCreateWithTextDTO.as_form),
     user_id: UUID = Depends(get_current_user_id),
 ):
     task = await CreateTaskUseCase(uow).execute(user_id, data, None)
-    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data, None)
+    cmd = await BuildTaskParamsUseCase(uow).execute(data, task_id)
+    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data.webhook_url, cmd)
     return task
 
 
@@ -122,11 +130,13 @@ async def create_and_run_edit_sport_meal(
     http_client: HttpClientDepend,
     runner: TaskEditMealRunnerDepend,
     background_tasks: BackgroundTasks,
+    task_id: UUID,
     data: TaskCreateWithTextDTO = Depends(TaskCreateWithTextDTO.as_form),
     user_id: UUID = Depends(get_current_user_id),
 ):
     task = await CreateTaskUseCase(uow).execute(user_id, data, None)
-    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data, None)
+    cmd = await BuildTaskParamsUseCase(uow).execute(data, task_id)
+    background_tasks.add_task(RunTaskUseCase(uow, runner, http_client).execute, task.id, data.webhook_url, cmd)
     return task
 
 

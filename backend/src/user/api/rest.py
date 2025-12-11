@@ -18,9 +18,9 @@ async def create_user(dto: UserCreateDTO, uow: UserUoWDepend):
     return await CreateUserUseCase(uow).execute(dto)
 
 
-@router.patch("/{user_id}", response_model=UserReadDTO)
-async def update_user(user_id: UUID, dto: UserUpdateDTO, uow: UserUoWDepend):
-    return await UpdateUserUseCase(uow).execute(user_id, dto)
+@router.patch("", response_model=UserReadDTO)
+async def update_me(dto: UserUpdateDTO, uow: UserUoWDepend, current_user_id: UUID = Depends(get_current_user_id)):
+    return await UpdateUserUseCase(uow).execute(current_user_id, dto)
 
 
 @router.get("/me", response_model=UserReadDTO)
