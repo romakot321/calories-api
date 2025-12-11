@@ -49,6 +49,8 @@ class Task(BaseModel):
     app_bundle: str
     status: TaskStatus
     error: str | None = None
+    request_text: str | None = None
+    request_filename: str | None = None
 
     products: list[TaskProduct]
     sports: list[TaskSport]

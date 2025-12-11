@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import exc, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.db.exceptions import DBModelConflictException, DBModelNotFoundException
 from src.user.domain.entities import User, UserFilters, UserUpdate
@@ -23,7 +24,7 @@ class UserRepository(IUserRepository):
         return self._model_to_entity(model)
 
     async def get_by_pk(self, pk: UUID) -> User:
-        result = await self.session.execute(select(UserDB).where(UserDB.id == pk))
+        result = await self.session.execute(select(UserDB).where(UserDB.id == pk).options(selectinload(UserDB.tasks)))
         model = result.scalar_one_or_none()
         if not model:
             raise DBModelNotFoundException(f"User with id {pk} not found")
@@ -59,7 +60,7 @@ class UserRepository(IUserRepository):
         await self.session.execute(delete(UserDB).where(UserDB.id == pk))
 
     def _model_to_entity(self, model: UserDB) -> User:
-        if model.gender != 'f' and model.gender != 'm':
+        if model.gender != "f" and model.gender != "m":
             raise ValueError(f"Invalid user gender {model.gender}")
 
         return User(
@@ -68,5 +69,5 @@ class UserRepository(IUserRepository):
             gender=model.gender,
             age=model.age,
             height=model.height,
-            target=model.target
+            target=model.target,
         )

@@ -13,4 +13,4 @@ class UserDB(Base, BaseMixin):
     height: Mapped[int | None]
     target: Mapped[str | None]
 
-    tasks: Mapped[list["TaskDB"]] = relationship(back_populates="user")
+    tasks: Mapped[list["TaskDB"]] = relationship(back_populates="user", lazy="selectin")

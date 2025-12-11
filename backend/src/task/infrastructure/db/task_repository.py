@@ -123,6 +123,8 @@ class PGTaskRepository(ITaskRepository):
             app_bundle=model.app_bundle,
             status=TaskStatus(model.status),
             error=model.error,
+            request_text=model.request_text,
+            request_filename=model.request_filename,
             products=products,
             sports=sports,
         )

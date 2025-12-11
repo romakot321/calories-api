@@ -1,0 +1,22 @@
+{% extends "sqladmin/layout.html" %}
+{% block content %}
+{% for task in tasks %}
+    <div class="col-6">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Задача {{ task.id }}</h3>
+        </div>
+        <div class="card-body border-bottom py-3">
+            Text: {{ task.request_text }}
+            Filename: {{ task.request_filename }}
+            {% for product in task.products %}
+                <h3>{{ product.name }}</h3>
+            {% endfor %}
+            {% for sport in task.sports %}
+                <h3>{{ sport.name }}</h3>
+            {% endfor %}
+        </div>
+    </div>
+    </div>
+{% endfor %}
+{% endblock %}
